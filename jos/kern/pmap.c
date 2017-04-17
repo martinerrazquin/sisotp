@@ -102,8 +102,12 @@ boot_alloc(uint32_t n)
 	// to a multiple of PGSIZE.
 	//
 	// LAB 2: Your code here.
-
-	return NULL;
+	if (n==0) return nextfree;
+	//n>0 (n<0 no deberia ocurrir por precond)
+	result = nextfree;
+	nextfree += ROUNDUP(n,PGSIZE);
+	if ((uint32_t)(nextfree-KERNBASE)>npages*PGSIZE) panic("not enough memory\n");//como chequeo esto? Uso nextfree vs npages*PGSIZE?
+	return (void*) result;
 }
 
 // Set up a two-level page table:
@@ -148,8 +152,13 @@ mem_init(void)
 	// array.  'npages' is the number of physical pages in memory.  Use memset
 	// to initialize all fields of each struct PageInfo to 0.
 	// Your code goes here:
-	pages=boot_alloc(npages //[page]
-					* sizeof(struct PageInfo));//[B/page]
+
+	//Un PageInfo tiene 4B del PageInfo* +4B del uint16_t = 8B de size
+
+	pages=(struct PageInfo *) boot_alloc(npages //[page]
+										 * sizeof(struct PageInfo));//[B/page]
+
+	memset(pages,0,npages*sizeof(struct PageInfo));
 
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
@@ -220,7 +229,7 @@ mem_init(void)
 	check_page_installed_pgdir();
 }
 
-// --------------------------------------------------------------
+// -------------------------------------------------------------
 // Tracking of physical pages.
 // The 'pages' array has one 'struct PageInfo' entry per physical page.
 // Pages are reference counted, and free pages are kept on a linked list.
@@ -253,7 +262,16 @@ page_init(void)
 	// NB: DO NOT actually touch the physical memory corresponding to
 	// free pages!
 	size_t i;
-	for (i = 0; i < npages; i++) {
+	/*for (i = 0; i < npages; i++) {
+		pages[i].pp_ref = 0;
+		pages[i].pp_link = page_free_list;
+		page_free_list = &pages[i];
+	}*/ //FOR ORIGINAL
+	uint32_t lim_inf_IO = PGNUM(IOPHYSMEM);//==npages_basemem
+	//uint32_t lim_sup_IO = PGNUM(EXTPHYSMEM); //no hace falta por lim_sup_kernmem > lim_sup_IO
+	uint32_t lim_sup_kernmem = PGNUM(PADDR(boot_alloc(0)));
+	for (i = 1; i < npages; i++) {//la 0 no se agrega tampoco
+		if (i>=lim_inf_IO && i<lim_sup_kernmem) continue;//asi es como se no-mapea		
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = page_free_list;
 		page_free_list = &pages[i];
@@ -274,9 +292,12 @@ page_init(void)
 // Hint: use page2kva and memset
 struct PageInfo *
 page_alloc(int alloc_flags)
-{
-	// Fill this function in
-	return 0;
+{	if (page_free_list == NULL) return NULL;
+	struct PageInfo* pag = page_free_list;
+	page_free_list = page_free_list->pp_link;
+	pag->pp_link = NULL;
+	if (alloc_flags & ALLOC_ZERO) memset(page2kva(pag),0,PGSIZE);
+	return pag;
 }
 
 //
@@ -289,6 +310,11 @@ page_free(struct PageInfo *pp)
 	// Fill this function in
 	// Hint: You may want to panic if pp->pp_ref is nonzero or
 	// pp->pp_link is not NULL.
+	if (pp->pp_ref) panic("page still in use!\n");
+	if (pp->pp_link) panic("page has non-NULL pp_link (already freed?)\n");//mejorar mensaje?
+	//pp_ref=0,pp_link=NULL
+	pp->pp_link=page_free_list;
+	page_free_list=pp;
 }
 
 //
