@@ -168,6 +168,34 @@ mem_init(void)
 	// or page_insert
 	page_init();
 
+
+	//parte de pruebas
+	cprintf("\n***PRUEBAS DADA UN LINEAR ADDR***\n");
+	pde_t* kpd = kern_pgdir;
+	cprintf("	kern_pgdir es %p (32b)\n",kpd);
+	cprintf("	PD index es %p (10b)\n",PDX(kpd));
+	cprintf("	PT index es %p (10b)\n",PTX(kpd));
+	cprintf("	PG offset es %p (12b)\n",PGOFF(kpd));
+
+	void* va1 = (void*) 0x7fe1b6a7;
+	cprintf("\n***ACCEDIENDO A KERN_PGDIR con VA = %p***\n",va1);
+	cprintf("	PD index es %p (10b)\n",PDX(va1));
+	cprintf("	PT index es %p (10b)\n",PTX(va1));
+	cprintf("	PG offset es %p (12b)\n",PGOFF(va1));
+	cprintf("	kern_pgdir[PDX] es %p (32b)\n",kpd+PDX(va1));
+	cprintf("	y su contenido es %p (32b)\n",kpd[PDX(va1)]);
+	cprintf("	o tambien es %p (32b)\n",*(kpd+PDX(va1)));
+	cprintf("	que maskeado es %p (32b, ultimos 10 en 0)\n",PTE_ADDR(kpd[PDX(va1)]));
+	cprintf("	kern_pgdir[PTX] es %p (32b)\n",kpd+PTX(va1));
+	cprintf("	y su contenido es %p (32b)\n",kpd[PTX(va1)]);
+	cprintf("	o tambien es %p (32b)\n",*(kpd+PTX(va1)));
+	cprintf("	que maskeado es %p (32b, ultimos 10 en 0)\n",PTE_ADDR(kpd[PTX(va1)]));
+
+	cprintf("\n***OPERACIONES DE MASKING con VA = %p***\n",va1);
+	cprintf("	maskeada con PTE_ADDR es %p (vuela los 12 de abajo)\n",PTE_ADDR(va1));
+	cprintf("\n\n");
+	//end:parte pruebas
+
 	check_page_free_list(1);
 	check_page_alloc();
 	check_page();
@@ -353,8 +381,13 @@ page_decref(struct PageInfo* pp)
 pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
-	// Fill this function in
-	return NULL;
+	//primero asumo que esta todo creado, falta si no existe la PT
+	uint32_t* aux =(uint32_t*) pgdir;	
+	physaddr_t* ptdir = (physaddr_t*) PTE_ADDR(aux[PDX(va)]); //ojo que esto es P.Addr. !!
+	aux = (uint32_t*) ptdir;	//hago esto porque se enoja el compilador, y el casteo adentro deja..
+								//..horrible el codigo
+	physaddr_t* pte = (physaddr_t*) PTE_ADDR(aux[PTX(va)]);  //misma atencion, esto tmb es P.Addr.
+	return (pte_t*)pte;//esto se pide?
 }
 
 //
