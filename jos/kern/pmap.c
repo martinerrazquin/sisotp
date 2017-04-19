@@ -381,12 +381,22 @@ page_decref(struct PageInfo* pp)
 pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
-	//primero asumo que esta todo creado, falta si no existe la PT
 	uint32_t* aux =(uint32_t*) pgdir;	
-	physaddr_t* ptdir = (physaddr_t*) PTE_ADDR(aux[PDX(va)]); //ojo que esto es P.Addr. !!
+	physaddr_t* ptdir = (physaddr_t*) aux[PDX(va)]; //ojo que esto es P.Addr. !!
+
+	if (ptdir == NULL){
+		if (!create) return NULL;
+		struct PageInfo *page = page_alloc(0);
+		if (page == NULL) return NULL;
+		page->pp_ref++;
+		ptdir = (physaddr_t *) page2pa(page);
+		//limpiar pagina
+		//se devuelve algo aca?? ("and pgdir_walk returns a pointer into the new page table page."???)
+	}
+
 	aux = (uint32_t*) ptdir;	//hago esto porque se enoja el compilador, y el casteo adentro deja..
 								//..horrible el codigo
-	physaddr_t* pte = (physaddr_t*) PTE_ADDR(aux[PTX(va)]);  //misma atencion, esto tmb es P.Addr.
+	physaddr_t* pte = (physaddr_t*) aux[PTX(va)];  //misma atencion, esto tmb es P.Addr.
 	return (pte_t*)pte;//esto se pide?
 }
 
@@ -436,6 +446,15 @@ int
 page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
 	// Fill this function in
+	physaddres_t page_PA = page2pa(pp);
+	pte_t page_entry = pgdir_walk(pgdir, va, 1);
+	if (PTE_ADDR(page_entry) != 0x0){
+		page_remove(pgdir,va);
+	}
+	*page_entry = (page_PA & ~0xFFF) | (PTE_P|perm);		// page_PA OR ~0xFFF me da los 20bits mas altos. 
+															//El otro OR me genera los permisos.
+															//El OR entre ambos me deja seteado el PTE.
+	pp->ref++;
 	return 0;
 }
 
@@ -453,9 +472,14 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 struct PageInfo *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
-	// Fill this function in
-	return NULL;
-}
+	pte_t *page_entry = pgdir_walk(pgdir, va, 0);	//Busco la PTE
+	physaddr_t physical_page = PTE_ADDR(page_entry);	//consigo el addres
+	physaddr_t physical_direction = physical_page | PGOFF(va);	//formo la direccion fisica conb lo anterir OR offset
+	if (pte_store != 0){
+		return NULL; //No estoy seguro que hacer aca
+	}
+	return pa2page(physical_direction); 
+}	
 
 //
 // Unmaps the physical page at virtual address 'va'.
