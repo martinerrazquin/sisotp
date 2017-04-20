@@ -446,15 +446,18 @@ int
 page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
 	// Fill this function in
-	physaddres_t page_PA = page2pa(pp);
-	pte_t page_entry = pgdir_walk(pgdir, va, 1);
+	physaddr_t page_PA = page2pa(pp);
+	pte_t *page_entry = pgdir_walk(pgdir, va, true);
+	if (page_entry == NULL){
+		return E_NO_MEM;
+	}
 	if (PTE_ADDR(page_entry) != 0x0){
 		page_remove(pgdir,va);
 	}
 	*page_entry = (page_PA & ~0xFFF) | (PTE_P|perm);		// page_PA OR ~0xFFF me da los 20bits mas altos. 
 															//El otro OR me genera los permisos.
-															//El OR entre ambos me deja seteado el PTE.
-	pp->ref++;
+							 								//El OR entre ambos me deja seteado el PTE.
+	pp->pp_ref++;
 	return 0;
 }
 
@@ -472,11 +475,15 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 struct PageInfo *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
-	pte_t *page_entry = pgdir_walk(pgdir, va, 0);	//Busco la PTE
+	pte_t *page_entry = pgdir_walk(pgdir, va, false);	//Busco la PTE
+	if (page_entry == NULL){
+		return NULL;
+	}
 	physaddr_t physical_page = PTE_ADDR(page_entry);	//consigo el addres
 	physaddr_t physical_direction = physical_page | PGOFF(va);	//formo la direccion fisica conb lo anterir OR offset
 	if (pte_store != 0){
 		return NULL; //No estoy seguro que hacer aca
+		//TODO corregir esto
 	}
 	return pa2page(physical_direction); 
 }	
@@ -499,7 +506,15 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 void
 page_remove(pde_t *pgdir, void *va)
 {
-	// Fill this function in
+	pte_t *page_entry = pgdir_walk(pgdir,va,false);
+	if(page_entry == NULL){
+		return;
+	}
+	struct PageInfo* page = page_lookup(pgdir, va, 0);
+	page_decref(page);
+	tlb_invalidate(pgdir,va);
+	*page_entry = 0x0;
+
 }
 
 //
