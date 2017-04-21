@@ -385,19 +385,21 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 	physaddr_t* ptdir = (physaddr_t*) aux[PDX(va)]; //ojo que esto es P.Addr. !!
 
 	if (ptdir == NULL){
+		cprintf("\nse entro a walk y ptdir es NULL\n");//DEBUG2
 		if (!create) return NULL;
 		struct PageInfo *page = page_alloc(0);
 		if (page == NULL) return NULL;
+		cprintf("y ademas se pudo hacer un page_alloc\n");//DEBUG2
 		page->pp_ref++;
 		ptdir = (physaddr_t *) page2pa(page);
-		//limpiar pagina
-		//se devuelve algo aca?? ("and pgdir_walk returns a pointer into the new page table page."???)
+		memset(page2kva(page),0,PGSIZE);//limpiar pagina
+		return (pte_t*) KADDR((physaddr_t) ptdir);
 	}
-
+	cprintf("\nse entro a walk y ptdir es %p\n",ptdir);//DEBUG2
 	aux = (uint32_t*) ptdir;	//hago esto porque se enoja el compilador, y el casteo adentro deja..
 								//..horrible el codigo
-	physaddr_t* pte = (physaddr_t*) aux[PTX(va)];  //misma atencion, esto tmb es P.Addr.
-	return (pte_t*)pte;//esto se pide?
+	physaddr_t pte = (physaddr_t) aux[PTX(va)];  //misma atencion, esto tmb es P.Addr.
+	return (pte_t*) KADDR(pte);//esto se pide?
 }
 
 //
@@ -449,12 +451,13 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 	physaddr_t page_PA = page2pa(pp);
 	pte_t *page_entry = pgdir_walk(pgdir, va, true);
 	if (page_entry == NULL){
-		return E_NO_MEM;
+		return -E_NO_MEM;	//DEBUG2: esto parece andar bien
 	}
 	if (PTE_ADDR(page_entry) != 0x0){
+		cprintf("En insert la PTE_ADDR(page_entry) es %p\n",PTE_ADDR(page_entry));//DEBUG2
 		page_remove(pgdir,va);
 	}
-	*page_entry = (page_PA & ~0xFFF) | (PTE_P|perm);		// page_PA OR ~0xFFF me da los 20bits mas altos. 
+	*page_entry = (page_PA & ~0xFFF) | (PTE_P|perm);		// page_PA OR ~0xFFF me da los 20bits mas altos. 						//DEBUG2: el & no es lo mismo que la macro PTE_ADDR?
 															//El otro OR me genera los permisos.
 							 								//El OR entre ambos me deja seteado el PTE.
 	pp->pp_ref++;
@@ -481,7 +484,8 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 	}
 	physaddr_t physical_page = PTE_ADDR(page_entry);	//consigo el addres
 	physaddr_t physical_direction = physical_page | PGOFF(va);	//formo la direccion fisica conb lo anterir OR offset
-	if (pte_store != 0){
+	if (pte_store != NULL){
+		cprintf("lookup con pte_store!=0, qcyo\n");//DEBUG2
 		return NULL; //No estoy seguro que hacer aca
 		//TODO corregir esto
 	}
@@ -781,6 +785,8 @@ check_page(void)
 	// free pp0 and try again: pp0 should be used for page table
 	page_free(pp0);
 	assert(page_insert(kern_pgdir, pp1, 0x0, PTE_W) == 0);
+	cprintf("page2pa(pp0) es %p\n",page2pa(pp0));//DEBUG2
+	cprintf("pero PTE_ADDR(kern_pgdir[0]) es %p\n",PTE_ADDR(kern_pgdir[0]));//DEBUG2
 	assert(PTE_ADDR(kern_pgdir[0]) == page2pa(pp0));
 	assert(check_va2pa(kern_pgdir, 0x0) == page2pa(pp1));
 	assert(pp1->pp_ref == 1);
