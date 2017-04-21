@@ -385,21 +385,18 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 	physaddr_t* ptdir = (physaddr_t*) aux[PDX(va)]; //ojo que esto es P.Addr. !!
 
 	if (ptdir == NULL){
-		cprintf("\nse entro a walk y ptdir es NULL\n");//DEBUG2
+//		cprintf("\nse entro a walk y ptdir es NULL\n");//DEBUG2
 		if (!create) return NULL;
 		struct PageInfo *page = page_alloc(0);
 		if (page == NULL) return NULL;
-		cprintf("y ademas se pudo hacer un page_alloc\n");//DEBUG2
+//		cprintf("y ademas se pudo hacer un page_alloc\n");//DEBUG2
 		page->pp_ref++;
 		ptdir = (physaddr_t *) page2pa(page);
 		memset(page2kva(page),0,PGSIZE);//limpiar pagina
 		return (pte_t*) KADDR((physaddr_t) ptdir);
 	}
-	cprintf("\nse entro a walk y ptdir es %p\n",ptdir);//DEBUG2
-	aux = (uint32_t*) ptdir;	//hago esto porque se enoja el compilador, y el casteo adentro deja..
-								//..horrible el codigo
-	physaddr_t pte = (physaddr_t) aux[PTX(va)];  //misma atencion, esto tmb es P.Addr.
-	return (pte_t*) KADDR(pte);//esto se pide?
+	cprintf("\nse entro a walk y ptdir es no null: %p\n",ptdir);//DEBUG2
+	return (pte_t*) KADDR(((physaddr_t) ptdir)+PTX(va));//esto se pide?
 }
 
 //
@@ -451,15 +448,26 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 	physaddr_t page_PA = page2pa(pp);
 	pte_t *page_entry = pgdir_walk(pgdir, va, true);
 	if (page_entry == NULL){
-		return -E_NO_MEM;	//DEBUG2: esto parece andar bien
+		return -E_NO_MEM;
 	}
-	if (PTE_ADDR(page_entry) != 0x0){
-		cprintf("En insert la PTE_ADDR(page_entry) es %p\n",PTE_ADDR(page_entry));//DEBUG2
+	if (PTE_ADDR(page_entry) != 0x0){//DEBUG2: para que esta este if?
+		cprintf("	En insert la PTE_ADDR(page_entry) es %p\n",PTE_ADDR(page_entry));//DEBUG2
+		cprintf("	En insert la page_entry es %p\n",page_entry);//DEBUG2
 		page_remove(pgdir,va);
+		//ATENCION: aca modifica el pgdir
+		cprintf("	En insert antes *(pgdir+PDX(va)) = %p y va = %p\n",*(pgdir+PDX(va)),va);//DEBUG2
+		if (!(*(pgdir+PDX(va)) & PTE_P)){ //si es la primera vez que se usa prender los flags
+			*(pgdir+PDX(va)) &= 0xFFF;//maskeo los flags, borro el resto
+			*(pgdir+PDX(va)) = (PADDR((void*) PTE_ADDR(page_entry)) | PTE_P | perm);
+		}
+		cprintf("	y ahora tengo *(pgdir+PDX(va)) = %p\n", *(pgdir+PDX(va)));//DEBUG2
 	}
 	*page_entry = (page_PA & ~0xFFF) | (PTE_P|perm);		// page_PA OR ~0xFFF me da los 20bits mas altos. 						//DEBUG2: el & no es lo mismo que la macro PTE_ADDR?
 															//El otro OR me genera los permisos.
-							 								//El OR entre ambos me deja seteado el PTE.
+													//El OR entre ambos me deja seteado el PTE.
+//	cprintf("En insert *page_entry es %p\n",*page_entry);
+//	cprintf("En insert page_PA es %08x y PTE_P|perm es %08x\n",page_PA, PTE_P|perm);
+
 	pp->pp_ref++;
 	return 0;
 }
@@ -486,8 +494,7 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 	physaddr_t physical_direction = physical_page | PGOFF(va);	//formo la direccion fisica conb lo anterir OR offset
 	if (pte_store != NULL){
 		cprintf("lookup con pte_store!=0, qcyo\n");//DEBUG2
-		return NULL; //No estoy seguro que hacer aca
-		//TODO corregir esto
+		*pte_store = page_entry;//DEBUG2 bien?
 	}
 	return pa2page(physical_direction); 
 }	
@@ -510,15 +517,16 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 void
 page_remove(pde_t *pgdir, void *va)
 {
-	pte_t *page_entry = pgdir_walk(pgdir,va,false);
-	if(page_entry == NULL){
+	pte_t* page_entry;
+	struct PageInfo* page = page_lookup(pgdir, va, &page_entry);
+	if(page == NULL){
+		cprintf("en remove, page es NULL\n",page);//DEBUG2
 		return;
 	}
-	struct PageInfo* page = page_lookup(pgdir, va, 0);
+	cprintf("en remove page_lookup da %p\n",page);//DEBUG2
+	*page_entry = 0;
 	page_decref(page);
 	tlb_invalidate(pgdir,va);
-	*page_entry = 0x0;
-
 }
 
 //
@@ -737,13 +745,17 @@ check_va2pa(pde_t *pgdir, uintptr_t va)
 	pte_t *p;
 
 	pgdir = &pgdir[PDX(va)];
-	if (!(*pgdir & PTE_P))
-		return ~0;
-	if (*pgdir & PTE_PS)
-		return (physaddr_t) PGADDR(PDX(*pgdir), PTX(va), PGOFF(va));
+	if (!(*pgdir & PTE_P)){
+		cprintf("	caso 1\n");//DEBUG2
+		cprintf("	*pgdir es %p, PTE_P es %p\n",*pgdir,PTE_P);//DEBUG2
+		return ~0;}
+	if (*pgdir & PTE_PS){
+		cprintf("	caso 2\n");//DEBUG2
+		return (physaddr_t) PGADDR(PDX(*pgdir), PTX(va), PGOFF(va));}
 	p = (pte_t*) KADDR(PTE_ADDR(*pgdir));
-	if (!(p[PTX(va)] & PTE_P))
-		return ~0;
+	if (!(p[PTX(va)] & PTE_P)){
+		cprintf("	caso 3\n");//DEBUG2
+		return ~0;}
 	return PTE_ADDR(p[PTX(va)]);
 }
 
@@ -782,12 +794,16 @@ check_page(void)
 	// there is no free memory, so we can't allocate a page table
 	assert(page_insert(kern_pgdir, pp1, 0x0, PTE_W) < 0);
 
+
 	// free pp0 and try again: pp0 should be used for page table
 	page_free(pp0);
+	cprintf("\nA PARTIR DE ACA IMPORTA\n");//DEBUG2
 	assert(page_insert(kern_pgdir, pp1, 0x0, PTE_W) == 0);
-	cprintf("page2pa(pp0) es %p\n",page2pa(pp0));//DEBUG2
-	cprintf("pero PTE_ADDR(kern_pgdir[0]) es %p\n",PTE_ADDR(kern_pgdir[0]));//DEBUG2
+//	cprintf("page2pa(pp0) es %p\n",page2pa(pp0));//DEBUG2
+//	cprintf("pero PTE_ADDR(kern_pgdir[0]) es %p\n",PTE_ADDR(kern_pgdir[0]));//DEBUG2
 	assert(PTE_ADDR(kern_pgdir[0]) == page2pa(pp0));
+	cprintf("page2pa(pp1) es %p\n",page2pa(pp1));//DEBUG2
+	cprintf("pero check_va2pa(kern_pgdir, 0x0) es %p\n",check_va2pa(kern_pgdir, 0x0));//DEBUG2
 	assert(check_va2pa(kern_pgdir, 0x0) == page2pa(pp1));
 	assert(pp1->pp_ref == 1);
 	assert(pp0->pp_ref == 1);
