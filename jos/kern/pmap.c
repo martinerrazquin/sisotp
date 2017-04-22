@@ -377,26 +377,22 @@ page_decref(struct PageInfo* pp)
 //
 // Hint 3: look at inc/mmu.h for useful macros that mainipulate page
 // table and page directory entries.
-//
+//*
 pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
-	uint32_t* aux =(uint32_t*) pgdir;	
-	physaddr_t* ptdir = (physaddr_t*) aux[PDX(va)]; //ojo que esto es P.Addr. !!
+	
+	pde_t pde =  pgdir[PDX(va)]; //ojo que esto es P.Addr. !!
+	if (pde & PTE_P) return (pte_t*) KADDR(PTE_ADDR(pde)+PTX(va));
 
-	if (ptdir == NULL){
-//		cprintf("\nse entro a walk y ptdir es NULL\n");//DEBUG2
-		if (!create) return NULL;
-		struct PageInfo *page = page_alloc(0);
-		if (page == NULL) return NULL;
-//		cprintf("y ademas se pudo hacer un page_alloc\n");//DEBUG2
-		page->pp_ref++;
-		ptdir = (physaddr_t *) page2pa(page);
-		memset(page2kva(page),0,PGSIZE);//limpiar pagina
-		return (pte_t*) KADDR((physaddr_t) ptdir);
-	}
-	cprintf("\nse entro a walk y ptdir es no null: %p\n",ptdir);//DEBUG2
-	return (pte_t*) KADDR(((physaddr_t) ptdir)+PTX(va));//esto se pide?
+	if (!create) return NULL;
+	struct PageInfo *page = page_alloc(ALLOC_ZERO);
+	if (page==NULL) return NULL;
+	physaddr_t pt_start = page2pa(page);
+	page->pp_ref ++;
+	*(pgdir+PDX(va)) = pt_start | PTE_P | PTE_U | PTE_W;
+	return (pte_t*) KADDR(pt_start+PTX(va));
+	
 }
 
 //
@@ -444,30 +440,33 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 int
 page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
-	// Fill this function in
+
 	physaddr_t page_PA = page2pa(pp);
+	cprintf("page_PA es %p\n",page_PA);
 	pte_t *page_entry = pgdir_walk(pgdir, va, true);
 	if (page_entry == NULL){
 		return -E_NO_MEM;
 	}
-	if (PTE_ADDR(page_entry) != 0x0){//DEBUG2: para que esta este if?
-		cprintf("	En insert la PTE_ADDR(page_entry) es %p\n",PTE_ADDR(page_entry));//DEBUG2
-		cprintf("	En insert la page_entry es %p\n",page_entry);//DEBUG2
+	if ((*page_entry&PTE_P) == PTE_P){			//DEBUG2: para que esta este if?
+							cprintf("	En insert la PTE_ADDR(page_entry) es %p\n",PTE_ADDR(*page_entry));//DEBUG2
+							cprintf("	En insert la page_entry es %p\n",page_entry);//DEBUG2
 		page_remove(pgdir,va);
-		//ATENCION: aca modifica el pgdir
-		cprintf("	En insert antes *(pgdir+PDX(va)) = %p y va = %p\n",*(pgdir+PDX(va)),va);//DEBUG2
-		if (!(*(pgdir+PDX(va)) & PTE_P)){ //si es la primera vez que se usa prender los flags
-			*(pgdir+PDX(va)) &= 0xFFF;//maskeo los flags, borro el resto
-			*(pgdir+PDX(va)) = (PADDR((void*) PTE_ADDR(page_entry)) | PTE_P | perm);
+							//ATENCION: aca modifica el pgdir
+							cprintf("	En insert antes *(pgdir+PDX(va)) = %p y va = %p\n",*(pgdir+PDX(va)),va);//DEBUG2
+							/*if (!(*(pgdir+PDX(va)) & PTE_P)){ //si es la primera vez que se usa, prender los flags
+								*(pgdir+PDX(va)) &= 0xFFF;//maskeo los flags, borro el resto
+								*(pgdir+PDX(va)) = (PADDR((void*) PTE_ADDR(page_entry)) | PTE_P | perm);
+							*/
 		}
-		cprintf("	y ahora tengo *(pgdir+PDX(va)) = %p\n", *(pgdir+PDX(va)));//DEBUG2
-	}
-	*page_entry = (page_PA & ~0xFFF) | (PTE_P|perm);		// page_PA OR ~0xFFF me da los 20bits mas altos. 						//DEBUG2: el & no es lo mismo que la macro PTE_ADDR?
-															//El otro OR me genera los permisos.
-													//El OR entre ambos me deja seteado el PTE.
-//	cprintf("En insert *page_entry es %p\n",*page_entry);
-//	cprintf("En insert page_PA es %08x y PTE_P|perm es %08x\n",page_PA, PTE_P|perm);
-
+		//cprintf("	y ahora tengo *(pgdir+PDX(va)) = %p\n", *(pgdir+PDX(va)));//DEBUG2
+							cprintf("insert: page entry entry: %p\n",(page_PA & ~0xFFF) | (PTE_P|perm));
+	*page_entry = (page_PA | PTE_P|perm);		// page_PA OR ~0xFFF me da los 20bits mas altos. 						
+											//El otro OR me genera los permisos.
+											//El OR entre ambos me deja seteado el PTE.
+	cprintf("En insert *page_entry es %p\n",*page_entry);
+	cprintf("En insert va es %p",va);
+	cprintf("pgdir %p paddr %x", check_va2pa(pgdir, (uintptr_t) va), page2pa(pp));
+	//cprintf("En insert va es %p",va);
 	pp->pp_ref++;
 	return 0;
 }
@@ -487,11 +486,14 @@ struct PageInfo *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
 	pte_t *page_entry = pgdir_walk(pgdir, va, false);	//Busco la PTE
-	if (page_entry == NULL){
+	if (page_entry == 0){
 		return NULL;
 	}
-	physaddr_t physical_page = PTE_ADDR(page_entry);	//consigo el addres
+	physaddr_t physical_page = PTE_ADDR(*page_entry);	//consigo el addres
+	cprintf("En lookup, la va es %p\n", va);
+	cprintf("En lookup, la PTE es %p\n", page_entry);
 	physaddr_t physical_direction = physical_page | PGOFF(va);	//formo la direccion fisica conb lo anterir OR offset
+	cprintf("En lookup, la pa es %p\n", physical_direction);
 	if (pte_store != NULL){
 		cprintf("lookup con pte_store!=0, qcyo\n");//DEBUG2
 		*pte_store = page_entry;//DEBUG2 bien?
