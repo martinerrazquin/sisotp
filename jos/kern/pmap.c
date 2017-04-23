@@ -106,7 +106,7 @@ boot_alloc(uint32_t n)
 	//n>0 (n<0 no deberia ocurrir por precond)
 	result = nextfree;
 	nextfree += ROUNDUP(n,PGSIZE);
-	if ((uint32_t)(nextfree-KERNBASE)>npages*PGSIZE) panic("not enough memory\n");//como chequeo esto? Uso nextfree vs npages*PGSIZE?
+	if ((uint32_t)(nextfree-KERNBASE)>npages*PGSIZE) panic("not enough memory\n");
 	return (void*) result;
 }
 
@@ -152,14 +152,9 @@ mem_init(void)
 	// array.  'npages' is the number of physical pages in memory.  Use memset
 	// to initialize all fields of each struct PageInfo to 0.
 	// Your code goes here:
-
-	//Un PageInfo tiene 4B del PageInfo* +4B del uint16_t = 8B de size
-
-	pages=(struct PageInfo *) boot_alloc(npages //[page]
-										 * sizeof(struct PageInfo));//[B/page]
-
+	pages=boot_alloc(npages //[page]
+					 * sizeof(struct PageInfo));//[B/page]
 	memset(pages,0,npages*sizeof(struct PageInfo));
-
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
 	// up the list of free physical pages. Once we've done so, all further
@@ -167,34 +162,6 @@ mem_init(void)
 	// particular, we can now map memory using boot_map_region
 	// or page_insert
 	page_init();
-
-
-	//parte de pruebas
-	cprintf("\n***PRUEBAS DADA UN LINEAR ADDR***\n");
-	pde_t* kpd = kern_pgdir;
-	cprintf("	kern_pgdir es %p (32b)\n",kpd);
-	cprintf("	PD index es %p (10b)\n",PDX(kpd));
-	cprintf("	PT index es %p (10b)\n",PTX(kpd));
-	cprintf("	PG offset es %p (12b)\n",PGOFF(kpd));
-
-	void* va1 = (void*) 0x7fe1b6a7;
-	cprintf("\n***ACCEDIENDO A KERN_PGDIR con VA = %p***\n",va1);
-	cprintf("	PD index es %p (10b)\n",PDX(va1));
-	cprintf("	PT index es %p (10b)\n",PTX(va1));
-	cprintf("	PG offset es %p (12b)\n",PGOFF(va1));
-	cprintf("	kern_pgdir[PDX] es %p (32b)\n",kpd+PDX(va1));
-	cprintf("	y su contenido es %p (32b)\n",kpd[PDX(va1)]);
-	cprintf("	o tambien es %p (32b)\n",*(kpd+PDX(va1)));
-	cprintf("	que maskeado es %p (32b, ultimos 10 en 0)\n",PTE_ADDR(kpd[PDX(va1)]));
-	cprintf("	kern_pgdir[PTX] es %p (32b)\n",kpd+PTX(va1));
-	cprintf("	y su contenido es %p (32b)\n",kpd[PTX(va1)]);
-	cprintf("	o tambien es %p (32b)\n",*(kpd+PTX(va1)));
-	cprintf("	que maskeado es %p (32b, ultimos 10 en 0)\n",PTE_ADDR(kpd[PTX(va1)]));
-
-	cprintf("\n***OPERACIONES DE MASKING con VA = %p***\n",va1);
-	cprintf("	maskeada con PTE_ADDR es %p (vuela los 12 de abajo)\n",PTE_ADDR(va1));
-	cprintf("\n\n");
-	//end:parte pruebas
 
 	check_page_free_list(1);
 	check_page_alloc();
@@ -257,7 +224,7 @@ mem_init(void)
 	check_page_installed_pgdir();
 }
 
-// -------------------------------------------------------------
+// --------------------------------------------------------------
 // Tracking of physical pages.
 // The 'pages' array has one 'struct PageInfo' entry per physical page.
 // Pages are reference counted, and free pages are kept on a linked list.
@@ -290,11 +257,6 @@ page_init(void)
 	// NB: DO NOT actually touch the physical memory corresponding to
 	// free pages!
 	size_t i;
-	/*for (i = 0; i < npages; i++) {
-		pages[i].pp_ref = 0;
-		pages[i].pp_link = page_free_list;
-		page_free_list = &pages[i];
-	}*/ //FOR ORIGINAL
 	uint32_t lim_inf_IO = PGNUM(IOPHYSMEM);//==npages_basemem
 	//uint32_t lim_sup_IO = PGNUM(EXTPHYSMEM); //no hace falta por lim_sup_kernmem > lim_sup_IO
 	uint32_t lim_sup_kernmem = PGNUM(PADDR(boot_alloc(0)));
@@ -377,13 +339,14 @@ page_decref(struct PageInfo* pp)
 //
 // Hint 3: look at inc/mmu.h for useful macros that mainipulate page
 // table and page directory entries.
-//*
+//
 pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
-	
 	pde_t pde =  pgdir[PDX(va)]; //ojo que esto es P.Addr. !!
-	if (pde & PTE_P) return (pte_t*) KADDR(PTE_ADDR(pde)+PTX(va));
+	pte_t* pte = (pte_t*) KADDR(PTE_ADDR(pde));
+
+	if (pde & PTE_P) return pte+PTX(va);
 
 	if (!create) return NULL;
 	struct PageInfo *page = page_alloc(ALLOC_ZERO);
@@ -391,8 +354,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 	physaddr_t pt_start = page2pa(page);
 	page->pp_ref ++;
 	*(pgdir+PDX(va)) = pt_start | PTE_P | PTE_U | PTE_W;
-	return (pte_t*) KADDR(pt_start+PTX(va));
-	
+	return (pte_t*)KADDR(pt_start)+PTX(va);
 }
 
 //
@@ -440,34 +402,12 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 int
 page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
-
-	physaddr_t page_PA = page2pa(pp);
-	cprintf("page_PA es %p\n",page_PA);
-	pte_t *page_entry = pgdir_walk(pgdir, va, true);
-	if (page_entry == NULL){
-		return -E_NO_MEM;
-	}
-	if ((*page_entry&PTE_P) == PTE_P){			//DEBUG2: para que esta este if?
-							cprintf("	En insert la PTE_ADDR(page_entry) es %p\n",PTE_ADDR(*page_entry));//DEBUG2
-							cprintf("	En insert la page_entry es %p\n",page_entry);//DEBUG2
-		page_remove(pgdir,va);
-							//ATENCION: aca modifica el pgdir
-							cprintf("	En insert antes *(pgdir+PDX(va)) = %p y va = %p\n",*(pgdir+PDX(va)),va);//DEBUG2
-							/*if (!(*(pgdir+PDX(va)) & PTE_P)){ //si es la primera vez que se usa, prender los flags
-								*(pgdir+PDX(va)) &= 0xFFF;//maskeo los flags, borro el resto
-								*(pgdir+PDX(va)) = (PADDR((void*) PTE_ADDR(page_entry)) | PTE_P | perm);
-							*/
-		}
-		//cprintf("	y ahora tengo *(pgdir+PDX(va)) = %p\n", *(pgdir+PDX(va)));//DEBUG2
-							cprintf("insert: page entry entry: %p\n",(page_PA & ~0xFFF) | (PTE_P|perm));
-	*page_entry = (page_PA | PTE_P|perm);		// page_PA OR ~0xFFF me da los 20bits mas altos. 						
-											//El otro OR me genera los permisos.
-											//El OR entre ambos me deja seteado el PTE.
-	cprintf("En insert *page_entry es %p\n",*page_entry);
-	cprintf("En insert va es %p",va);
-	cprintf("pgdir %p paddr %x", check_va2pa(pgdir, (uintptr_t) va), page2pa(pp));
-	//cprintf("En insert va es %p",va);
+	pte_t* pte_addr = pgdir_walk(pgdir,va,true);//entra a la PT, si no habia la crea
+	if (!pte_addr) return -E_NO_MEM;	//solo NULL si no habia y no la pudo crear
+	//a partir de aca hay pte_addr valida
 	pp->pp_ref++;
+	if (*pte_addr & PTE_P) page_remove(pgdir,va);
+	*pte_addr = page2pa(pp) | perm | PTE_P;
 	return 0;
 }
 
@@ -485,21 +425,13 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 struct PageInfo *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
-	pte_t *page_entry = pgdir_walk(pgdir, va, false);	//Busco la PTE
-	if (page_entry == 0){
-		return NULL;
-	}
-	physaddr_t physical_page = PTE_ADDR(*page_entry);	//consigo el addres
-	cprintf("En lookup, la va es %p\n", va);
-	cprintf("En lookup, la PTE es %p\n", page_entry);
-	physaddr_t physical_direction = physical_page | PGOFF(va);	//formo la direccion fisica conb lo anterir OR offset
-	cprintf("En lookup, la pa es %p\n", physical_direction);
-	if (pte_store != NULL){
-		cprintf("lookup con pte_store!=0, qcyo\n");//DEBUG2
-		*pte_store = page_entry;//DEBUG2 bien?
-	}
-	return pa2page(physical_direction); 
-}	
+	pte_t* pte_addr = pgdir_walk(pgdir,va,false);
+	if (pte_store) *pte_store = pte_addr;
+	if (!pte_addr) return NULL;		//no recuerdo si era lazy checking o no, por las dudas dejo asi
+	if (!(*pte_addr & PTE_P)) return NULL;
+	physaddr_t pageaddr = PTE_ADDR(*pte_addr);
+	return pa2page(pageaddr);
+}
 
 //
 // Unmaps the physical page at virtual address 'va'.
@@ -519,15 +451,11 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 void
 page_remove(pde_t *pgdir, void *va)
 {
-	pte_t* page_entry;
-	struct PageInfo* page = page_lookup(pgdir, va, &page_entry);
-	if(page == NULL){
-		cprintf("en remove, page es NULL\n",page);//DEBUG2
-		return;
-	}
-	cprintf("en remove page_lookup da %p\n",page);//DEBUG2
-	*page_entry = 0;
-	page_decref(page);
+	pte_t* pte_addr;
+	struct PageInfo* page_ptr = page_lookup(pgdir,va,&pte_addr);
+	if (!page_ptr) return;
+	page_decref(page_ptr);
+	*pte_addr = 0;
 	tlb_invalidate(pgdir,va);
 }
 
@@ -747,17 +675,13 @@ check_va2pa(pde_t *pgdir, uintptr_t va)
 	pte_t *p;
 
 	pgdir = &pgdir[PDX(va)];
-	if (!(*pgdir & PTE_P)){
-		cprintf("	caso 1\n");//DEBUG2
-		cprintf("	*pgdir es %p, PTE_P es %p\n",*pgdir,PTE_P);//DEBUG2
-		return ~0;}
-	if (*pgdir & PTE_PS){
-		cprintf("	caso 2\n");//DEBUG2
-		return (physaddr_t) PGADDR(PDX(*pgdir), PTX(va), PGOFF(va));}
+	if (!(*pgdir & PTE_P))
+		return ~0;
+	if (*pgdir & PTE_PS)
+		return (physaddr_t) PGADDR(PDX(*pgdir), PTX(va), PGOFF(va));
 	p = (pte_t*) KADDR(PTE_ADDR(*pgdir));
-	if (!(p[PTX(va)] & PTE_P)){
-		cprintf("	caso 3\n");//DEBUG2
-		return ~0;}
+	if (!(p[PTX(va)] & PTE_P))
+		return ~0;
 	return PTE_ADDR(p[PTX(va)]);
 }
 
@@ -796,20 +720,13 @@ check_page(void)
 	// there is no free memory, so we can't allocate a page table
 	assert(page_insert(kern_pgdir, pp1, 0x0, PTE_W) < 0);
 
-
 	// free pp0 and try again: pp0 should be used for page table
 	page_free(pp0);
-	cprintf("\nA PARTIR DE ACA IMPORTA\n");//DEBUG2
 	assert(page_insert(kern_pgdir, pp1, 0x0, PTE_W) == 0);
-//	cprintf("page2pa(pp0) es %p\n",page2pa(pp0));//DEBUG2
-//	cprintf("pero PTE_ADDR(kern_pgdir[0]) es %p\n",PTE_ADDR(kern_pgdir[0]));//DEBUG2
 	assert(PTE_ADDR(kern_pgdir[0]) == page2pa(pp0));
-	cprintf("page2pa(pp1) es %p\n",page2pa(pp1));//DEBUG2
-	cprintf("pero check_va2pa(kern_pgdir, 0x0) es %p\n",check_va2pa(kern_pgdir, 0x0));//DEBUG2
 	assert(check_va2pa(kern_pgdir, 0x0) == page2pa(pp1));
 	assert(pp1->pp_ref == 1);
 	assert(pp0->pp_ref == 1);
-
 	// should be able to map pp2 at PGSIZE because pp0 is already allocated for page table
 	assert(page_insert(kern_pgdir, pp2, (void*) PGSIZE, PTE_W) == 0);
 	assert(check_va2pa(kern_pgdir, PGSIZE) == page2pa(pp2));
