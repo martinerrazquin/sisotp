@@ -106,7 +106,7 @@ boot_alloc(uint32_t n)
 	//n>0 (n<0 no deberia ocurrir por precond)
 	result = nextfree;
 	nextfree += ROUNDUP(n,PGSIZE);
-	if ((uint32_t)(nextfree-KERNBASE)>npages*PGSIZE) panic("not enough memory\n");
+	if (PADDR(nextfree)>npages*PGSIZE) panic("not enough memory\n");
 	return (void*) result;
 }
 
@@ -177,7 +177,7 @@ mem_init(void)
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
-
+	boot_map_region(kern_pgdir,UPAGES,npages*sizeof(struct PageInfo),PADDR(pages),PTE_U|PTE_P);
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
 	// stack.  The kernel stack grows down from virtual address KSTACKTOP.
@@ -189,6 +189,8 @@ mem_init(void)
 	//       overwrite memory.  Known as a "guard page".
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
+	boot_map_region(kern_pgdir,KSTACKTOP-KSTKSIZE,KSTKSIZE,PADDR(bootstack),PTE_P|PTE_W);
+	boot_map_region(kern_pgdir,MMIOLIM,PTSIZE-KSTKSIZE,0,0);//perm=0 para tirar fault
 
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE.
@@ -198,7 +200,7 @@ mem_init(void)
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
-
+	boot_map_region(kern_pgdir,KERNBASE,~0x0-KERNBASE,0,PTE_P|PTE_W);
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
 
@@ -301,7 +303,7 @@ page_free(struct PageInfo *pp)
 	// Hint: You may want to panic if pp->pp_ref is nonzero or
 	// pp->pp_link is not NULL.
 	if (pp->pp_ref) panic("page still in use!\n");
-	if (pp->pp_link) panic("page has non-NULL pp_link (already freed?)\n");//mejorar mensaje?
+	if (pp->pp_link) panic("page has non-NULL pp_link (already freed?)\n");
 	//pp_ref=0,pp_link=NULL
 	pp->pp_link=page_free_list;
 	page_free_list=pp;
@@ -371,9 +373,18 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
-	// Fill this function in
+	uint32_t cant_iteraciones = size/PGSIZE;
+	for (int i=0;i<cant_iteraciones;i++){//al ser iteraciones fijas no hay problema de overflow
+		//cprintf("VA es%p, Limite es %p\n",va,limit);
+		pte_t* pte_addr = pgdir_walk(pgdir,(void*)va,true);
+		//if (!pte_addr) return;//corresponde?
+		*pte_addr = PTE_ADDR(pa) | perm ;//OJO! esta PISANDO el valor que habia antes..
+												//..porque no hace page_remove de aca
+		//incremento
+		va+=PGSIZE;
+		pa+=PGSIZE;
+	}
 }
-
 //
 // Map the physical page 'pp' at virtual address 'va'.
 // The permissions (the low 12 bits) of the page table entry
