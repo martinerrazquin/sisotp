@@ -190,7 +190,6 @@ mem_init(void)
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
 	boot_map_region(kern_pgdir,KSTACKTOP-KSTKSIZE,KSTKSIZE,PADDR(bootstack),PTE_P|PTE_W);
-	boot_map_region(kern_pgdir,MMIOLIM,PTSIZE-KSTKSIZE,0,0);//perm=0 para tirar fault
 
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE.
@@ -200,7 +199,7 @@ mem_init(void)
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
-	boot_map_region(kern_pgdir,KERNBASE,~0x0-KERNBASE,0,PTE_P|PTE_W);
+	boot_map_region(kern_pgdir,KERNBASE,~0x0-KERNBASE+1,0,PTE_P|PTE_W);
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
 
@@ -370,20 +369,45 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 // mapped pages.
 //
 // Hint: the TA solution uses pgdir_walk
+#define TP1_PSE
 static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
-	uint32_t cant_iteraciones = size/PGSIZE;
-	for (int i=0;i<cant_iteraciones;i++){//al ser iteraciones fijas no hay problema de overflow
-		//cprintf("VA es%p, Limite es %p\n",va,limit);
-		pte_t* pte_addr = pgdir_walk(pgdir,(void*)va,true);
-		//if (!pte_addr) return;//corresponde?
-		*pte_addr = PTE_ADDR(pa) | perm ;//OJO! esta PISANDO el valor que habia antes..
-												//..porque no hace page_remove de aca
-		//incremento
-		va+=PGSIZE;
-		pa+=PGSIZE;
-	}
+	assert(va % PGSIZE == 0);
+	assert(pa % PGSIZE == 0);
+	assert(size % PGSIZE == 0);	
+
+	//uint32_t cant_iteraciones = size/PGSIZE;
+	//for (int i=0;i<cant_iteraciones;i++){//al ser iteraciones fijas no hay problema de overflow
+	//physaddr_t pa_inicial = pa;	
+	#ifndef TP1_PSE
+		while(size){			
+			pte_t* pte_addr = pgdir_walk(pgdir,(void*)va,true);
+			*pte_addr = pa | perm | PTE_P;
+			size-=PGSIZE;		
+			//incremento
+			va+=PGSIZE;
+			pa+=PGSIZE;
+		}
+	#else
+		while(size){
+			if (!(pa % PTSIZE) && size>=PTSIZE) {
+				*(pgdir+PDX(va)) = pa | perm | PTE_P | PTE_PS;
+				size-=PTSIZE;		
+				//incremento
+				va+=PTSIZE;
+				pa+=PTSIZE;
+			}
+			else{
+				pte_t* pte_addr = pgdir_walk(pgdir,(void*)va,true);
+				*pte_addr = pa | perm | PTE_P;
+				size-=PGSIZE;		
+				//incremento
+				va+=PGSIZE;
+				pa+=PGSIZE;
+			}
+		}
+	#endif
 }
 //
 // Map the physical page 'pp' at virtual address 'va'.
