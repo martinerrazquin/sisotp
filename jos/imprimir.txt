@@ -1,0 +1,330 @@
+diff --git a/kern/entry.S b/kern/entry.S
+index 9550bbb..159eaf8 100644
+--- a/kern/entry.S
++++ b/kern/entry.S
+@@ -56,6 +56,9 @@ entry:
+ 	# is defined in entrypgdir.c.
+ 	movl	$(RELOC(entry_pgdir)), %eax
+ 	movl	%eax, %cr3
++	movl	%cr4,%eax
++	orl		$(CR4_PSE),%eax	#Prendo flag del cr4 para Page Size Extension
++	movl	%eax,%cr4	
+ 	# Turn on paging.
+ 	movl	%cr0, %eax
+ 	orl	$(CR0_PE|CR0_PG|CR0_WP), %eax
+diff --git a/kern/entrypgdir.c b/kern/entrypgdir.c
+index 4f324d1..e768f43 100644
+--- a/kern/entrypgdir.c
++++ b/kern/entrypgdir.c
+@@ -21,12 +21,12 @@ __attribute__((__aligned__(PGSIZE)))
+ pde_t entry_pgdir[NPDENTRIES] = {
+ 	// Map VA's [0, 4MB) to PA's [0, 4MB)
+ 	[0]
+-		= ((uintptr_t)entry_pgtable - KERNBASE) + PTE_P,
++		= /*((uintptr_t)entry_pgtable - KERNBASE)*/ 0 + PTE_P + PTE_PS,
+ 	// Map VA's [KERNBASE, KERNBASE+4MB) to PA's [0, 4MB)
+ 	[KERNBASE>>PDXSHIFT]
+-		= ((uintptr_t)entry_pgtable - KERNBASE) + PTE_P + PTE_W
++		= /*((uintptr_t)entry_pgtable - KERNBASE)*/ 0 + PTE_P + PTE_W + PTE_PS
+ };
+-
++/*
+ // Entry 0 of the page table maps to physical page 0, entry 1 to
+ // physical page 1, etc.
+ __attribute__((__aligned__(PGSIZE)))
+@@ -1056,4 +1056,4 @@ pte_t entry_pgtable[NPTENTRIES] = {
+ 	0x3fe000 | PTE_P | PTE_W,
+ 	0x3ff000 | PTE_P | PTE_W,
+ };
+-
++*/
+diff --git a/kern/monitor.c b/kern/monitor.c
+index e137e92..0b1e8f9 100644
+--- a/kern/monitor.c
++++ b/kern/monitor.c
+@@ -24,6 +24,7 @@ struct Command {
+ static struct Command commands[] = {
+ 	{ "help", "Display this list of commands", mon_help },
+ 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
++	{"backtrace", "Display the current backtrace", mon_backtrace },
+ };
+ 
+ /***** Implementations of basic kernel monitor commands *****/
+@@ -57,7 +58,18 @@ mon_kerninfo(int argc, char **argv, struct Trapframe *tf)
+ int
+ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
+ {
+-	// Your code here.
++	uint32_t ebp = read_ebp();
++	struct Eipdebuginfo dbgi;
++	while (ebp != 0x0){
++	uint32_t eip=*(uint32_t *)(ebp+4);
++	cprintf("  ebp %08x eip %08x args %08x %08x %08x %08x %08x\n", ebp, eip, 
++			*(uint32_t *)(ebp+8), *(uint32_t *)(ebp+12), *(uint32_t *)(ebp+16),
++			*(uint32_t *)(ebp+20), *(uint32_t *)(ebp+24));
++	debuginfo_eip(eip,&dbgi);
++	cprintf("       %s:%d: %.*s+%d\n", dbgi.eip_file, dbgi.eip_line, dbgi.eip_fn_namelen, 
++			dbgi.eip_fn_name,((uintptr_t)eip - dbgi.eip_fn_addr));
++	ebp = *(uint32_t *)(ebp);
++	}
+ 	return 0;
+ }
+ 
+diff --git a/kern/pmap.c b/kern/pmap.c
+index 20f3f3f..f472595 100644
+--- a/kern/pmap.c
++++ b/kern/pmap.c
+@@ -102,8 +102,12 @@ boot_alloc(uint32_t n)
+ 	// to a multiple of PGSIZE.
+ 	//
+ 	// LAB 2: Your code here.
+-
+-	return NULL;
++	if (n==0) return nextfree;
++	//n>0 (n<0 no deberia ocurrir por precond)
++	result = nextfree;
++	nextfree += ROUNDUP(n,PGSIZE);
++	if (PADDR(nextfree)>npages*PGSIZE) panic("not enough memory\n");
++	return (void*) result;
+ }
+ 
+ // Set up a two-level page table:
+@@ -125,7 +129,7 @@ mem_init(void)
+ 	i386_detect_memory();
+ 
+ 	// Remove this line when you're ready to test this function.
+-	panic("mem_init: This function is not finished\n");
++	//panic("mem_init: This function is not finished\n");
+ 
+ 	//////////////////////////////////////////////////////////////////////
+ 	// create initial page directory.
+@@ -148,8 +152,9 @@ mem_init(void)
+ 	// array.  'npages' is the number of physical pages in memory.  Use memset
+ 	// to initialize all fields of each struct PageInfo to 0.
+ 	// Your code goes here:
+-
+-
++	pages=boot_alloc(npages //[page]
++					 * sizeof(struct PageInfo));//[B/page]
++	memset(pages,0,npages*sizeof(struct PageInfo));
+ 	//////////////////////////////////////////////////////////////////////
+ 	// Now that we've allocated the initial kernel data structures, we set
+ 	// up the list of free physical pages. Once we've done so, all further
+@@ -172,7 +177,7 @@ mem_init(void)
+ 	//      (ie. perm = PTE_U | PTE_P)
+ 	//    - pages itself -- kernel RW, user NONE
+ 	// Your code goes here:
+-
++	boot_map_region(kern_pgdir,UPAGES,npages*sizeof(struct PageInfo),PADDR(pages),PTE_U|PTE_P);
+ 	//////////////////////////////////////////////////////////////////////
+ 	// Use the physical memory that 'bootstack' refers to as the kernel
+ 	// stack.  The kernel stack grows down from virtual address KSTACKTOP.
+@@ -184,6 +189,7 @@ mem_init(void)
+ 	//       overwrite memory.  Known as a "guard page".
+ 	//     Permissions: kernel RW, user NONE
+ 	// Your code goes here:
++	boot_map_region(kern_pgdir,KSTACKTOP-KSTKSIZE,KSTKSIZE,PADDR(bootstack),PTE_P|PTE_W);
+ 
+ 	//////////////////////////////////////////////////////////////////////
+ 	// Map all of physical memory at KERNBASE.
+@@ -193,7 +199,7 @@ mem_init(void)
+ 	// we just set up the mapping anyway.
+ 	// Permissions: kernel RW, user NONE
+ 	// Your code goes here:
+-
++	boot_map_region(kern_pgdir,KERNBASE,~0x0-KERNBASE+1,0,PTE_P|PTE_W);
+ 	// Check that the initial page directory has been set up correctly.
+ 	check_kern_pgdir();
+ 
+@@ -252,7 +258,11 @@ page_init(void)
+ 	// NB: DO NOT actually touch the physical memory corresponding to
+ 	// free pages!
+ 	size_t i;
+-	for (i = 0; i < npages; i++) {
++	uint32_t lim_inf_IO = PGNUM(IOPHYSMEM);//==npages_basemem
++	//uint32_t lim_sup_IO = PGNUM(EXTPHYSMEM); //no hace falta por lim_sup_kernmem > lim_sup_IO
++	uint32_t lim_sup_kernmem = PGNUM(PADDR(boot_alloc(0)));
++	for (i = 1; i < npages; i++) {//la 0 no se agrega tampoco
++		if (i>=lim_inf_IO && i<lim_sup_kernmem) continue;//asi es como se no-mapea		
+ 		pages[i].pp_ref = 0;
+ 		pages[i].pp_link = page_free_list;
+ 		page_free_list = &pages[i];
+@@ -273,9 +283,12 @@ page_init(void)
+ // Hint: use page2kva and memset
+ struct PageInfo *
+ page_alloc(int alloc_flags)
+-{
+-	// Fill this function in
+-	return 0;
++{	if (page_free_list == NULL) return NULL;
++	struct PageInfo* pag = page_free_list;
++	page_free_list = page_free_list->pp_link;
++	pag->pp_link = NULL;
++	if (alloc_flags & ALLOC_ZERO) memset(page2kva(pag),0,PGSIZE);
++	return pag;
+ }
+ 
+ //
+@@ -288,6 +301,11 @@ page_free(struct PageInfo *pp)
+ 	// Fill this function in
+ 	// Hint: You may want to panic if pp->pp_ref is nonzero or
+ 	// pp->pp_link is not NULL.
++	if (pp->pp_ref) panic("page still in use!\n");
++	if (pp->pp_link) panic("page has non-NULL pp_link (already freed?)\n");
++	//pp_ref=0,pp_link=NULL
++	pp->pp_link=page_free_list;
++	page_free_list=pp;
+ }
+ 
+ //
+@@ -326,8 +344,18 @@ page_decref(struct PageInfo* pp)
+ pte_t *
+ pgdir_walk(pde_t *pgdir, const void *va, int create)
+ {
+-	// Fill this function in
+-	return NULL;
++	pde_t pde =  pgdir[PDX(va)]; //ojo que esto es P.Addr. !!
++	pte_t* pte = (pte_t*) KADDR(PTE_ADDR(pde));
++
++	if (pde & PTE_P) return pte+PTX(va);
++
++	if (!create) return NULL;
++	struct PageInfo *page = page_alloc(ALLOC_ZERO);
++	if (page==NULL) return NULL;
++	physaddr_t pt_start = page2pa(page);
++	page->pp_ref ++;
++	*(pgdir+PDX(va)) = pt_start | PTE_P | PTE_U | PTE_W;
++	return (pte_t*)KADDR(pt_start)+PTX(va);
+ }
+ 
+ //
+@@ -341,12 +369,46 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
+ // mapped pages.
+ //
+ // Hint: the TA solution uses pgdir_walk
++#define TP1_PSE 1
+ static void
+ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
+ {
+-	// Fill this function in
++	assert(va % PGSIZE == 0);
++	assert(pa % PGSIZE == 0);
++	assert(size % PGSIZE == 0);	
++
++	//uint32_t cant_iteraciones = size/PGSIZE;
++	//for (int i=0;i<cant_iteraciones;i++){//al ser iteraciones fijas no hay problema de overflow
++	//physaddr_t pa_inicial = pa;	
++	#ifndef TP1_PSE
++		while(size){			
++			pte_t* pte_addr = pgdir_walk(pgdir,(void*)va,true);
++			*pte_addr = pa | perm | PTE_P;
++			size-=PGSIZE;		
++			//incremento
++			va+=PGSIZE;
++			pa+=PGSIZE;
++		}
++	#else
++		while(size){
++			if (!(pa % PTSIZE) && size>=PTSIZE) {
++				*(pgdir+PDX(va)) = pa | perm | PTE_P | PTE_PS;
++				size-=PTSIZE;		
++				//incremento
++				va+=PTSIZE;
++				pa+=PTSIZE;
++			}
++			else{
++				pte_t* pte_addr = pgdir_walk(pgdir,(void*)va,true);
++				*pte_addr = pa | perm | PTE_P;
++				size-=PGSIZE;		
++				//incremento
++				va+=PGSIZE;
++				pa+=PGSIZE;
++			}
++		}
++	#endif
+ }
+-
+ //
+ // Map the physical page 'pp' at virtual address 'va'.
+ // The permissions (the low 12 bits) of the page table entry
+@@ -375,7 +437,12 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
+ int
+ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
+ {
+-	// Fill this function in
++	pte_t* pte_addr = pgdir_walk(pgdir,va,true);//entra a la PT, si no habia la crea
++	if (!pte_addr) return -E_NO_MEM;	//solo NULL si no habia y no la pudo crear
++	//a partir de aca hay pte_addr valida
++	pp->pp_ref++;
++	if (*pte_addr & PTE_P) page_remove(pgdir,va);
++	*pte_addr = page2pa(pp) | perm | PTE_P;
+ 	return 0;
+ }
+ 
+@@ -393,8 +460,12 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
+ struct PageInfo *
+ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
+ {
+-	// Fill this function in
+-	return NULL;
++	pte_t* pte_addr = pgdir_walk(pgdir,va,false);
++	if (pte_store) *pte_store = pte_addr;
++	if (!pte_addr) return NULL;		//no recuerdo si era lazy checking o no, por las dudas dejo asi
++	if (!(*pte_addr & PTE_P)) return NULL;
++	physaddr_t pageaddr = PTE_ADDR(*pte_addr);
++	return pa2page(pageaddr);
+ }
+ 
+ //
+@@ -415,7 +486,12 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
+ void
+ page_remove(pde_t *pgdir, void *va)
+ {
+-	// Fill this function in
++	pte_t* pte_addr;
++	struct PageInfo* page_ptr = page_lookup(pgdir,va,&pte_addr);
++	if (!page_ptr) return;
++	page_decref(page_ptr);
++	*pte_addr = 0;
++	tlb_invalidate(pgdir,va);
+ }
+ 
+ //
+@@ -622,14 +698,15 @@ check_kern_pgdir(void)
+ 	}
+ 	cprintf("check_kern_pgdir() succeeded!\n");
+ 
+-#if defined(TP1_PSE)  // Avoid literal “ifdef”, the grading script greps for it.
+-	uint32_t kern_pdx = PDX(KERNBASE);
+-	for (i = kern_pdx; i < NPDENTRIES; i++) {
+-		assert(pgdir[i] & PTE_PS);
+-		assert(PTE_ADDR(pgdir[i]) == (i - kern_pdx) << PDXSHIFT);
+-	}
+-	cprintf("check_kern_pgdir_pse() succeeded!\n");
+-#endif
++	#if defined(TP1_PSE)  // Avoid literal “ifdef”, the grading script greps for it.
++		uint32_t kern_pdx = PDX(KERNBASE);
++		for (i = kern_pdx; i < NPDENTRIES; i++) {
++			assert(pgdir[i] & PTE_PS);
++			assert(PTE_ADDR(pgdir[i]) == (i - kern_pdx) << PDXSHIFT);
++		}
++		cprintf("check_kern_pgdir_pse() succeeded!\n");
++	#endif
++
+ }
+ 
+ // This function returns the physical address of the page containing 'va',
+@@ -695,7 +772,6 @@ check_page(void)
+ 	assert(check_va2pa(kern_pgdir, 0x0) == page2pa(pp1));
+ 	assert(pp1->pp_ref == 1);
+ 	assert(pp0->pp_ref == 1);
+-
+ 	// should be able to map pp2 at PGSIZE because pp0 is already allocated for page table
+ 	assert(page_insert(kern_pgdir, pp2, (void*) PGSIZE, PTE_W) == 0);
+ 	assert(check_va2pa(kern_pgdir, PGSIZE) == page2pa(pp2));
+@@ -848,3 +924,5 @@ check_page_installed_pgdir(void)
+ 
+ 	cprintf("check_page_installed_pgdir() succeeded!\n");
+ }
++
++

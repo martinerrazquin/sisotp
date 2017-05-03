@@ -5,7 +5,8 @@ Physical memory: 131072K available, base = 640K, extended = 130432K
 check_page_alloc() succeeded!
 check_page() succeeded!
 check_kern_pgdir() succeeded!
+check_kern_pgdir_pse() succeeded!
 check_page_installed_pgdir() succeeded!
 Welcome to the JOS kernel monitor!
 Type 'help' for a list of commands.
-qemu-system-i386: terminating on signal 15 from pid 7380
+qemu: terminating on signal 15 from pid 25973
