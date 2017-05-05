@@ -1,7 +1,7 @@
 00200010 R __STAB_BEGIN__
-002027f4 R __STAB_END__
-002027f5 R __STABSTR_BEGIN__
-002041da R __STABSTR_END__
+00202704 R __STAB_END__
+00202705 R __STABSTR_BEGIN__
+00203e50 R __STABSTR_END__
 00800020 T _start
 0080002c t args_exist
 00800033 T umain
@@ -42,7 +42,7 @@
 00800b44 T strtol
 00800c20 T __udivdi3
 00800d50 T __umoddi3
-008010e8 r error_string
+008010ec r error_string
 00802000 D binaryname
 00802004 B thisenv
 eec00000 A envs
