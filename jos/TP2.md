@@ -38,7 +38,13 @@ Dos hilos distintos ejecutándose en paralelo ¿podrían usar distintas GDT?
 
 env_pop_tf
 ----------
-
+-¿Qué hay en (%esp) tras el primer movl de la función?
+Se pasa al esp la trapframe address (&tf), luego al dereferenciarlo se accede al mismo.
+-¿Qué hay en (%esp) justo antes de la instrucción iret? ¿Y en 8(%esp)?
+Está el valor de %eip a donde volver terminado el trap. En (%esp)+8 se encuentra el valor guardado de %esp. 
+-En la documentación de iret en [IA32-2A] se dice: "If the return is to another privilege level, the IRET instruction also pops the stack pointer and SS from the stack, before resuming program execution."
+¿Cómo puede determinar la CPU si hay un cambio de ring (nivel de privilegio)?
+Porque popea del stack el code segment, luego puede chequear el CPL para saber en que ring corre el código al que se cambia.
 ...
 
 

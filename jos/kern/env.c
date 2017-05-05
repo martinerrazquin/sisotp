@@ -275,7 +275,7 @@ region_alloc(struct Env *e, void *va, size_t len)
 	//   You should round va down, and round (va + len) up.
 	//   (Watch out for corner-cases!)
 	
-	void* va_copy = va;
+/*	void* va_copy = va;
 	uint32_t start_page_address =((uint32_t) va) & ~0xFFF;
 	uint32_t finish_page_address =(((uint32_t)va+len) & ~0xFFF) + PGSIZE;
 	size_t cantidad_iteraciones = (start_page_address - finish_page_address)/PGSIZE;
@@ -292,7 +292,26 @@ region_alloc(struct Env *e, void *va, size_t len)
 		}
 		va_copy = va_copy + PGSIZE;
 	}
+*/
 
+	va = ROUNDDOWN(va,PGSIZE);
+	void* va_finish = ROUNDUP(va+len,PGSIZE);
+	cprintf("checkpoint\n");//DEBUG2
+	if (va_finish>va) {len = va_finish - va; //es un multiplo de PGSIZE	
+						cprintf("FLAGTRUE\n");}//DEBUG2
+	else {len = ~0x0-(uint32_t)va+1;//si hizo overflow
+						cprintf("FLAGFALSE\n");}//DEBUG2
+	while (len>0){
+		struct PageInfo* page = page_alloc(0);//no hay que inicializar
+		if (page == NULL) panic("Error allocating environment");
+
+		int ret_code = page_insert(e->env_pgdir, page, va, PTE_W | PTE_U);
+		if (ret_code == -E_NO_MEM)	panic("Error allocating environment");
+		
+		va+=PGSIZE;
+		len-=PGSIZE;
+	}
+	assert(va==va_finish);
 }
 
 //
@@ -349,7 +368,7 @@ load_icode(struct Env *e, uint8_t *binary)
 	//  What?  (See env_run() and env_pop_tf() below.)
 
 	// LAB 3: Your code here.
-
+/*
 	struct Elf* elf = (struct Elf *) binary;
 	if (elf->e_magic != ELF_MAGIC){
 		panic("Invalid binary");
@@ -370,6 +389,7 @@ load_icode(struct Env *e, uint8_t *binary)
 		header_offset += elf->e_phentsize;
 	}
 
+	(e->env_tf).tf_eip=elf->e_entry;	//prox instr a ejecutar en entry point
 	// Now map one page for the program's initial stack
 	// at virtual address USTACKTOP - PGSIZE.
 
@@ -380,12 +400,45 @@ load_icode(struct Env *e, uint8_t *binary)
 	}
 	int perm  = PTE_W | PTE_U;
 	uint32_t stack_va = USTACKTOP-PGSIZE;
-	int ret_code = page_insert(e->env_pgdir, stack_page, &stack_va, perm);
+	int ret_code = page_insert(e->env_pgdir, stack_page, (void*) stack_va, perm);
 	if (ret_code != 0){
 		panic("Couldnt alloc process stack");
 	}
 
 	return;
+*/
+
+	struct Elf* elf = (struct Elf *) binary;
+	if (elf->e_magic != ELF_MAGIC) panic("Invalid binary");
+
+	struct Proghdr* ph = (struct Proghdr*)(binary + elf->e_phoff);
+	void* va;
+	for (int hdr_num = 0; hdr_num < elf->e_phnum; hdr_num++){
+		va=(void*) ph->p_va;
+		if (ph->p_type != ELF_PROG_LOAD) continue;
+		region_alloc(e,va,ph->p_memsz);
+		cprintf("\tVA es %p\n",va);//DEBUG2
+		cprintf("\tbinary es %p\n",binary);//DEBUG2
+		cprintf("\tph es %p\n",ph);//DEBUG2
+		cprintf("\tp_offset es %p\n",ph->p_offset);//DEBUG2
+		cprintf("\tbin+p_off es %p\n",(void*)binary+ph->p_offset);//DEBUG2
+		cprintf("\tfilesz es %d y memsz es %d\n",ph->p_filesz,ph->p_memsz);//DEBUG2
+		cprintf("\tentsize es %d\n",elf->e_phentsize);//DEBUG2
+		memcpy(va,(void*)binary+ph->p_offset,ph->p_filesz);
+		cprintf("\thizo el memcpy\n");//DEBUG2
+		memset(va + ph->p_filesz,0,ph->p_memsz - ph->p_filesz);//VA+FILESZ->VA+MEMSZ
+		ph += elf->e_phentsize;
+	}
+
+
+	e->env_tf.tf_eip=elf->e_entry;
+
+	// Now map one page for the program's initial stack
+	// at virtual address USTACKTOP - PGSIZE.
+
+	// LAB 3: Your code here.
+
+	region_alloc(e,(void*)USTACKTOP - PGSIZE,PGSIZE);
 }
 
 //
@@ -399,6 +452,11 @@ void
 env_create(uint8_t *binary, enum EnvType type)
 {
 	// LAB 3: Your code here.
+	struct Env* e;
+	int err = env_alloc(&e,0);//hace lugar para un Env cuya dir se guarda en e, parent_id es 0 por def.
+	if (err<0) panic("env_create: %e", err);
+	load_icode(e,binary);
+	e->env_type = type;
 }
 
 //
@@ -515,6 +573,23 @@ env_run(struct Env *e)
 	//	e->env_tf to sensible values.
 
 	// LAB 3: Your code here.
+	
+	//panic("env_run not yet implemented");
 
-	panic("env_run not yet implemented");
+	if(curenv != NULL){	//si no es la primera vez que se corre esto hay que guardar todo
+		cprintf("Estoy en un proc y su env_status es %d\n",curenv->env_status);//DEBUG2
+		if (curenv->env_status == ENV_RUNNING) curenv->env_status=ENV_RUNNABLE;
+		//podria estar en otro estado? FREE, DYING, RUNNABLE, NOT_RUNNABLE ?
+		//si FREE no tiene nada, no tiene sentido
+		//si DYING ????
+		//si RUNNABLE no deberia estar corriendo
+		//si NOT_RUNNABLE ???
+	}
+	curenv=e;
+	curenv->env_status = ENV_RUNNING;
+	curenv->env_runs++;
+	lcr3(PADDR(curenv->env_pgdir));
+
+	env_pop_tf(&(curenv->env_tf));
+	
 }
