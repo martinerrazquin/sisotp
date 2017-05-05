@@ -180,7 +180,6 @@ env_setup_vm(struct Env *e)
 	//	is an exception -- you need to increment env_pgdir's
 	//	pp_ref for env_free to work correctly.
 	//    - The functions in kern/pmap.h are handy.
-	
 	e->env_pgdir = page2kva(p);
 	memcpy(e->env_pgdir, kern_pgdir, PGSIZE);
 	p->pp_ref ++;
@@ -275,13 +274,18 @@ region_alloc(struct Env *e, void *va, size_t len)
 	//   You should round va down, and round (va + len) up.
 	//   (Watch out for corner-cases!)
 	
+	cprintf("Entro a region_alloc.\nenv_pgdir es: %p\n", e->env_pgdir);
 	va = ROUNDDOWN(va,PGSIZE);
 	void* va_finish = ROUNDUP(va+len,PGSIZE);
 	cprintf("checkpoint\n");//DEBUG2
-	if (va_finish>va) {len = va_finish - va; //es un multiplo de PGSIZE	
-						cprintf("FLAGTRUE\n");}//DEBUG2
-	else {len = ~0x0-(uint32_t)va+1;//si hizo overflow
-						cprintf("FLAGFALSE\n");}//DEBUG2
+	if (va_finish>va) {
+		len = va_finish - va; //es un multiplo de PGSIZE	
+		cprintf("FLAGTRUE\n");//DEBUG2
+	}
+	else {
+		len = ~0x0-(uint32_t)va+1;//si hizo overflow
+		cprintf("FLAGFALSE\n");//DEBUG2
+	}
 	while (len>0){
 		struct PageInfo* page = page_alloc(0);//no hay que inicializar
 		if (page == NULL) panic("Error allocating environment");
@@ -293,6 +297,7 @@ region_alloc(struct Env *e, void *va, size_t len)
 		len-=PGSIZE;
 	}
 	assert(va==va_finish);
+	cprintf("Salgo de region_alloc.\nenv_pgdir es: %p\n", e->env_pgdir);
 }
 
 //
@@ -349,10 +354,13 @@ load_icode(struct Env *e, uint8_t *binary)
 	//  What?  (See env_run() and env_pop_tf() below.)
 
 	// LAB 3: Your code here.
+	
 
-	cprintf("rcr3 da %p\n,kern_pgdir es %p, env_pgdir es %p\n",(void*)rcr3(),kern_pgdir,e->env_pgdir);//DEBUG2
+	cprintf("Entro a load_icode.\nrcr3 da %p,kern_pgdir es %p, env_pgdir es %p\n",(void*)rcr3(),kern_pgdir,e->env_pgdir);//DEBUG2
 	assert(rcr3()==PADDR(kern_pgdir));
 	lcr3(PADDR(e->env_pgdir));//cambio a pgdir del env para que anden memcpy y memset
+	cprintf("Modifico cr3.\nrcr3 da %p,kern_pgdir es %p, env_pgdir es %p\n",(void*)rcr3(),kern_pgdir,e->env_pgdir);//DEBUG2
+	assert(rcr3()==PADDR(e->env_pgdir));
 
 	struct Elf* elf = (struct Elf *) binary;
 	if (elf->e_magic != ELF_MAGIC) panic("Invalid binary");
@@ -387,6 +395,7 @@ load_icode(struct Env *e, uint8_t *binary)
 	region_alloc(e,(void*)USTACKTOP - PGSIZE,PGSIZE);
 
 	lcr3(PADDR(kern_pgdir));//vuelvo a poner el pgdir del kernel 
+	cprintf("Salgo de load_icode.\nrcr3 da %p,kern_pgdir es %p, env_pgdir es %p\n",(void*)rcr3(),kern_pgdir,e->env_pgdir);//DEBUG2
 }
 
 //
@@ -400,11 +409,13 @@ void
 env_create(uint8_t *binary, enum EnvType type)
 {
 	// LAB 3: Your code here.
+	cprintf("Entro a env_create\n");
 	struct Env* e;
 	int err = env_alloc(&e,0);//hace lugar para un Env cuya dir se guarda en e, parent_id es 0 por def.
 	if (err<0) panic("env_create: %e", err);
 	load_icode(e,binary);
 	e->env_type = type;
+	cprintf("Salgo de env_create.env_pgdir es: %p\n", e->env_pgdir);
 }
 
 //
@@ -533,8 +544,8 @@ env_run(struct Env *e)
 		//si RUNNABLE no deberia estar corriendo
 		//si NOT_RUNNABLE ???
 	}
-	assert(e->env_status != ENV_FREE);//DEBUG2
-	assert(e->env_status == ENV_RUNNABLE);//DEBUG2
+	//assert(e->env_status != ENV_FREE);//DEBUG2
+	//assert(e->env_status == ENV_RUNNABLE);//DEBUG2
 	curenv=e;
 	curenv->env_status = ENV_RUNNING;
 	curenv->env_runs++;
