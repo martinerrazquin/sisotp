@@ -275,25 +275,6 @@ region_alloc(struct Env *e, void *va, size_t len)
 	//   You should round va down, and round (va + len) up.
 	//   (Watch out for corner-cases!)
 	
-/*	void* va_copy = va;
-	uint32_t start_page_address =((uint32_t) va) & ~0xFFF;
-	uint32_t finish_page_address =(((uint32_t)va+len) & ~0xFFF) + PGSIZE;
-	size_t cantidad_iteraciones = (start_page_address - finish_page_address)/PGSIZE;
-	int perm = PTE_W | PTE_U;
-
-	for (int i = 0; i<cantidad_iteraciones; i++){
-		struct PageInfo* page = page_alloc(ALLOC_ZERO);
-		if (page == NULL){
-			panic("Error allocating environment");
-		}
-		int ret_code = page_insert(e->env_pgdir, page, va_copy, perm);
-		if (ret_code == -E_NO_MEM){
-			panic("Error allocating environment");
-		}
-		va_copy = va_copy + PGSIZE;
-	}
-*/
-
 	va = ROUNDDOWN(va,PGSIZE);
 	void* va_finish = ROUNDUP(va+len,PGSIZE);
 	cprintf("checkpoint\n");//DEBUG2
@@ -368,45 +349,10 @@ load_icode(struct Env *e, uint8_t *binary)
 	//  What?  (See env_run() and env_pop_tf() below.)
 
 	// LAB 3: Your code here.
-/*
-	struct Elf* elf = (struct Elf *) binary;
-	if (elf->e_magic != ELF_MAGIC){
-		panic("Invalid binary");
-	}	
 
-	uint32_t header_offset = elf->e_phoff;
-
-	for (int i=0; i< elf->e_phnum; i++){
-		
-		struct Proghdr *prog_header = (struct Proghdr *) ((uint8_t *) elf + header_offset);
-		if (prog_header->p_type != ELF_PROG_LOAD) continue;
-
-		region_alloc(e, &prog_header->p_va, prog_header->p_memsz);
-		uint32_t copy_source = (uint32_t) binary + prog_header->p_offset;
-		memcpy(&prog_header->p_va, &copy_source, prog_header->p_filesz);
-		memset(&prog_header->p_va+prog_header->p_filesz, 0, prog_header->p_filesz - prog_header->p_memsz);
-
-		header_offset += elf->e_phentsize;
-	}
-
-	(e->env_tf).tf_eip=elf->e_entry;	//prox instr a ejecutar en entry point
-	// Now map one page for the program's initial stack
-	// at virtual address USTACKTOP - PGSIZE.
-
-	// LAB 3: Your code here.
-	struct PageInfo *stack_page = page_alloc(ALLOC_ZERO);
-	if (stack_page == NULL){
-		panic("Couldnt alloc process stack");
-	}
-	int perm  = PTE_W | PTE_U;
-	uint32_t stack_va = USTACKTOP-PGSIZE;
-	int ret_code = page_insert(e->env_pgdir, stack_page, (void*) stack_va, perm);
-	if (ret_code != 0){
-		panic("Couldnt alloc process stack");
-	}
-
-	return;
-*/
+	cprintf("rcr3 da %p\n,kern_pgdir es %p, env_pgdir es %p\n",(void*)rcr3(),kern_pgdir,e->env_pgdir);//DEBUG2
+	assert(rcr3()==PADDR(kern_pgdir));
+	lcr3(PADDR(e->env_pgdir));//cambio a pgdir del env para que anden memcpy y memset
 
 	struct Elf* elf = (struct Elf *) binary;
 	if (elf->e_magic != ELF_MAGIC) panic("Invalid binary");
@@ -439,6 +385,8 @@ load_icode(struct Env *e, uint8_t *binary)
 	// LAB 3: Your code here.
 
 	region_alloc(e,(void*)USTACKTOP - PGSIZE,PGSIZE);
+
+	lcr3(PADDR(kern_pgdir));//vuelvo a poner el pgdir del kernel 
 }
 
 //
@@ -585,11 +533,13 @@ env_run(struct Env *e)
 		//si RUNNABLE no deberia estar corriendo
 		//si NOT_RUNNABLE ???
 	}
+	assert(e->env_status != ENV_FREE);//DEBUG2
+	assert(e->env_status == ENV_RUNNABLE);//DEBUG2
 	curenv=e;
 	curenv->env_status = ENV_RUNNING;
 	curenv->env_runs++;
+	cprintf("env_pgdir es %p",e->env_pgdir);
 	lcr3(PADDR(curenv->env_pgdir));
-
 	env_pop_tf(&(curenv->env_tf));
 	
 }
