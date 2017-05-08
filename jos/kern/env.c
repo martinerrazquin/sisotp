@@ -368,7 +368,8 @@ load_icode(struct Env *e, uint8_t *binary)
 		region_alloc(e,va,ph->p_memsz);
 		memcpy(va,(void*)binary+ph->p_offset,ph->p_filesz);
 		memset(va + ph->p_filesz,0,ph->p_memsz - ph->p_filesz);//VA+FILESZ->VA+MEMSZ
-		ph += elf->e_phentsize;
+		ph++;
+		//ph += elf->e_phentsize;
 	}
 
 
@@ -527,8 +528,8 @@ env_run(struct Env *e)
 		//si RUNNABLE no deberia estar corriendo
 		//si NOT_RUNNABLE ???
 	}
-	//assert(e->env_status != ENV_FREE);//DEBUG2
-	//assert(e->env_status == ENV_RUNNABLE);//DEBUG2
+	assert(e->env_status != ENV_FREE);//DEBUG2
+	assert(e->env_status == ENV_RUNNABLE);//DEBUG2
 	curenv=e;
 	curenv->env_status = ENV_RUNNING;
 	curenv->env_runs++;
