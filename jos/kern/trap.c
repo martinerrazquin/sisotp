@@ -181,6 +181,13 @@ trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
+	if(tf->tf_trapno == 3){
+		monitor(tf);
+	}
+	if(tf->tf_trapno == 14){
+		page_fault_handler(tf);
+	}
+
 
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
