@@ -76,6 +76,7 @@ void Trap_17();
 void Trap_18();
 void Trap_19();
 void Trap_20();
+void Trap_48();
 
 
 void
@@ -103,6 +104,7 @@ trap_init(void)
 	SETGATE(idt[18], 0, GD_KT, &Trap_18, 0); 
 	SETGATE(idt[19], 0, GD_KT, &Trap_19, 0); 
 	SETGATE(idt[20], 0, GD_KT, &Trap_20, 0); 
+	SETGATE(idt[48], 0, GD_KT, &Trap_48,3);
 
 	// Per-CPU setup
 	trap_init_percpu();
@@ -186,6 +188,9 @@ trap_dispatch(struct Trapframe *tf)
 	}
 	if(tf->tf_trapno == 14){
 		page_fault_handler(tf);
+	}
+	if(tf->tf_trapno == 48){
+		//syscall(); TODO:Completar parametros
 	}
 
 
