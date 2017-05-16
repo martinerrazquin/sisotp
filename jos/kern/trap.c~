@@ -190,7 +190,7 @@ trap_dispatch(struct Trapframe *tf)
 		page_fault_handler(tf);
 	}
 	if(tf->tf_trapno == 48){
-		//syscall();
+		//syscall(); TODO:Completar parametros
 	}
 
 
