@@ -191,7 +191,7 @@ trap_dispatch(struct Trapframe *tf)
 	}
 	if(tf->tf_trapno == 48){
 		//TODO: Revisar parametros
-		syscall(tf->tf_regs->reg_eax,tf->tf_regs->reg_edx,tf->tf_regs->reg_ecx,tf->tf_regs->reg_ebx,tf->tf_regs->reg_edi,tf->tf_regs->reg_esi); 
+		syscall(tf->tf_regs.reg_eax,tf->tf_regs.reg_edx,tf->tf_regs.reg_ecx,tf->tf_regs.reg_ebx,tf->tf_regs.reg_edi,tf->tf_regs.reg_esi); 
 	}
 
 

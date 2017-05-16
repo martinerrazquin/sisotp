@@ -190,7 +190,8 @@ trap_dispatch(struct Trapframe *tf)
 		page_fault_handler(tf);
 	}
 	if(tf->tf_trapno == 48){
-		//syscall(); TODO:Completar parametros
+		//TODO: Revisar parametros
+		syscall(tf->tf_regs->reg_eax,tf->tf_regs->reg_edx,tf->tf_regs->reg_ecx,tf->tf_regs->reg_ebx,tf->tf_regs->reg_edi,tf->tf_regs->reg_esi); 
 	}
 
 

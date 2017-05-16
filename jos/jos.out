@@ -4,5 +4,4 @@
 Physical memory: 131072K available, base = 640K, extended = 130432K
 check_page_alloc() succeeded!
 check_page() succeeded!
-check_kern_pgdir() succeeded!
 qemu: terminating on signal 2
