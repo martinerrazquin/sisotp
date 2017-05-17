@@ -64,7 +64,8 @@ TRAPHANDLER_NOEC(Trap_16, T_FPERR)
 TRAPHANDLER(Trap_17, T_ALIGN)
 TRAPHANDLER_NOEC(Trap_18, T_MCHK)
 TRAPHANDLER_NOEC(Trap_19, T_SIMDERR)
-TRAPHANDLER_NOEC(Trap_20, 20)
+//TRAPHANDLER_NOEC(Trap_20, 20)
+TRAPHANDLER_NOEC(Trap_48, T_SYSCALL)
 
 	
 
@@ -83,18 +84,19 @@ _alltraps:
     call trap (can trap ever return?)
 	*/
 
-	pop	%ebx			//ebx tiene el num
-	pushal				//Ya se pushearon los registros del TF
+	pop		(0x0)		//en dir(0x0) esta el num. TODO: arreglar esto
+	pop		(0x4)		//Otro pop para el error code
+	pusha				//Ya se pushearon los registros generales del TF
 	push	%es
 	push	%ds
-	push	%ebx		//Numero de trap
-	push	0x0			//????
+	push	(0x0)		//Numero de trap
+	push	(0x4)			//tf_errno??? TODO: Arreglar esto
 	push	(%esp)
 	push	%cs
 	pushf
 	push	%esp
 	push	%ss			//Aca se termina el TrapFrame
-	movw	GD_KD, %ds	//0x10 = GD_K
+	movw	GD_KD, %ds	
 	movw	GD_KD, %es
 	pushl	%esp
 	call trap

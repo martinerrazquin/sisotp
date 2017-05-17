@@ -64,7 +64,7 @@ TRAPHANDLER_NOEC(Trap_16, T_FPERR)
 TRAPHANDLER(Trap_17, T_ALIGN)
 TRAPHANDLER_NOEC(Trap_18, T_MCHK)
 TRAPHANDLER_NOEC(Trap_19, T_SIMDERR)
-TRAPHANDLER_NOEC(Trap_20, 20)
+//TRAPHANDLER_NOEC(Trap_20, 20)
 TRAPHANDLER_NOEC(Trap_48, T_SYSCALL)
 
 	
@@ -76,30 +76,40 @@ TRAPHANDLER_NOEC(Trap_48, T_SYSCALL)
  */
 
 _alltraps:
+	pushl %ds
+        pushl %es
+	pushal
 
-	/*
-    push values to make the stack look like a struct Trapframe
-    load GD_KD into %ds and %es
-    pushl %esp to pass a pointer to the Trapframe as an argument to trap()
-    call trap (can trap ever return?)
-	*/
+	movw $GD_KD, %ax
+	movw %ax, %ds
+	movw %ax, %es 
 
-	pop	%ebx			//ebx tiene el num
-	pushal				//Ya se pushearon los registros del TF
-	push	%es
-	push	%ds
-	push	%ebx		//Numero de trap
-	push	0x0			//????
-	push	(%esp)
-	push	%cs
-	pushf
-	push	%esp
-	push	%ss			//Aca se termina el TrapFrame
-	movw	GD_KD, %ds	//0x10 = GD_K
-	movw	GD_KD, %es
-	pushl	%esp
-	call trap
+        pushl %esp  /* trap(%esp) */
+        call trap	
 	
+.data
+.globl traphndlr
+	traphndlr:
+	.long Trap_0
+	.long Trap_1
+	.long Trap_2
+	.long Trap_3
+	.long Trap_4
+	.long Trap_5
+	.long Trap_6
+	.long Trap_7
+	.long Trap_8
+	.long 0
+	.long Trap_10
+	.long Trap_11
+	.long Trap_12
+	.long Trap_13
+	.long Trap_14
+	.long 0
+	.long Trap_16
+	.long Trap_17
+	.long Trap_18
+	.long Trap_19
 	
 	
 	
