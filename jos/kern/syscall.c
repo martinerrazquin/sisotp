@@ -21,7 +21,8 @@ sys_cputs(const char *s, size_t len)
 	// Destroy the environment if not.
 
 	// LAB 3: Your code here.
-
+	//MARTIN_TP2_PARTE
+	user_mem_assert(curenv,s,len,PTE_U);
 	
 
 	// Print the string supplied by the user.

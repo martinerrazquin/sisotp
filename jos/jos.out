@@ -11,13 +11,9 @@ Se setearon los gates
 [00000000] new env 00001000
 Incoming TRAP frame at 0xefffffbc
 Entre a syscall()
-f«rEntre a f2()
-Incoming TRAP frame at 0xefffffbc
-Entre a syscall()
-Entre a f4()
-[00001000] exiting gracefully
+[00001000] user_mem_check assertion failure for va f010000c
 [00001000] free env 00001000
 Destroyed the only environment - nothing more to do!
 Welcome to the JOS kernel monitor!
 Type 'help' for a list of commands.
-qemu: terminating on signal 15 from pid 5102
+qemu-system-i386: terminating on signal 15 from pid 26675

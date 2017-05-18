@@ -548,7 +548,30 @@ int
 user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 {
 	// LAB 3: Your code here.
+	//MARTIN_TP2_PARTE5
+	uintptr_t xva = (uintptr_t) va;
+	uintptr_t lim_va = xva+len;
+	if (xva >= ULIM){
+		user_mem_check_addr = xva;
+		return -E_FAULT;
+	}
+	if (lim_va >= ULIM || lim_va < xva){ //Bolzano dice que esto anda
+		user_mem_check_addr = ULIM; 
+		return -E_FAULT;		
+	}
 
+	pte_t* pteaddr;
+	while(xva<lim_va){ 
+		if (!page_lookup(env->env_pgdir,(void*) xva,&pteaddr)){	//si no esta alojada o !PTE_P
+			user_mem_check_addr = xva;
+			return -E_FAULT;
+		}
+		if ((*pteaddr & perm) != perm){ //si no tiene permisos perm (PTE_P ya chequeado)
+			user_mem_check_addr = xva;
+			return -E_FAULT;
+		}
+		ROUNDUP(++xva,PGSIZE);
+	}
 	return 0;
 }
 

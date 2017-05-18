@@ -137,3 +137,12 @@ kern_idt
 Leer user/softint.c y ejecutarlo con make run-softint-nox. ¿Qué excepción se genera? Si hay diferencias con la que invoca el programa… ¿por qué mecanismo ocurre eso, y por qué razones?
 -Se genera la excepcion "Page Fault".
 
+user_evilhello
+--------
+¿En qué se diferencia el código de la versión en evilhello.c mostrada arriba?
+-En dónde se hace el desreferenciamiento. Uno lo hace el kernel durante la syscall y el otro el usuario antes de llamarla.
+
+¿En qué cambia el comportamiento durante la ejecución? ¿Por qué? ¿Cuál es el mecanismo?
+-Por lo dicho antes, cuando en el segundo código se intenta acceder a la dirección la pte no tendrá los permisos necesarios y ocurrirá un fault. En el primero en cambio, es el kernel el que accede por lo que siempre tiene permisos de acceso. Si no se chequea explícitamente que los argumentos pasados sean válidos el primero no tendrá ningún fault.
+
+
