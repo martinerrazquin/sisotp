@@ -185,20 +185,20 @@ trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
-	if(tf->tf_trapno == 3){
-		monitor(tf);
+	if(tf->tf_trapno == T_BRKPT){
+		monitor(tf);	
+		return;
 	}
-	if(tf->tf_trapno == 14){
+	if(tf->tf_trapno == T_PGFLT){
 		page_fault_handler(tf);
+		return;
 	}
-	if(tf->tf_trapno == 48){
+	if(tf->tf_trapno == T_SYSCALL){
 		uint32_t resultado = syscall(tf->tf_regs.reg_eax, tf->tf_regs.reg_edx, tf->tf_regs.reg_ecx, tf->tf_regs.reg_ebx, tf->tf_regs.reg_edi, tf->tf_regs.reg_esi);
-		
+
 		//guardar resultado en eax;
-		/*asm("movl %0, %%eax\n"
-			:
-			:"r"(resultado)
-			:"%eax");*/
+		tf->tf_regs.reg_eax = resultado;
+		return;
 	}
 
 

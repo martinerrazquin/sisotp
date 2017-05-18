@@ -10,27 +10,16 @@ Se setean los gates
 Se setearon los gates
 [00000000] new env 00001000
 Incoming TRAP frame at 0xefffffbc
+Entre a syscall()
+Entre a f1()
 hello, world
-TRAP frame at 0xf01e5000
-  edi  0x00000000
-  esi  0x00000000
-  ebp  0xeebfdf90
-  oesp 0xefffffdc
-  ebx  0x00000000
-  edx  0x00800eb8
-  ecx  0x00100000
-  eax  0x00000000
-  es   0x----0023
-  ds   0x----0023
-  trap 0x00000030 System call
-  err  0x00000000
-  eip  0x008000b8
-  cs   0x----001b
-  flag 0x00000092
-  esp  0xeebfdf58
-  ss   0x----0023
+Entre a f2()
+Incoming TRAP frame at 0xefffffbc
+Entre a syscall()
+Entre a f4()
+[00001000] exiting gracefully
 [00001000] free env 00001000
 Destroyed the only environment - nothing more to do!
 Welcome to the JOS kernel monitor!
 Type 'help' for a list of commands.
-qemu: terminating on signal 15 from pid 22260
+qemu: terminating on signal 15 from pid 27318
