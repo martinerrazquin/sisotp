@@ -11,7 +11,7 @@ Se setearon los gates
 [00000000] new env 00001000
 Incoming TRAP frame at 0xefffffbc
 hello, world
-TRAP frame at 0xf01e6000
+TRAP frame at 0xf01e5000
   edi  0x00000000
   esi  0x00000000
   ebp  0xeebfdf90
@@ -33,4 +33,4 @@ TRAP frame at 0xf01e6000
 Destroyed the only environment - nothing more to do!
 Welcome to the JOS kernel monitor!
 Type 'help' for a list of commands.
-qemu: terminating on signal 15 from pid 1695
+qemu: terminating on signal 15 from pid 22260

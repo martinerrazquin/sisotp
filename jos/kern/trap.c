@@ -104,8 +104,7 @@ trap_init(void)
 	SETGATE(idt[17], 1, GD_KT, Trap_17, 0); 
 	SETGATE(idt[18], 1, GD_KT, Trap_18, 0); 
 	SETGATE(idt[19], 1, GD_KT, Trap_19, 0); 
-//	SETGATE(idt[20], 1, GD_KT, Trap_20, 0); 
-	SETGATE(idt[48], 0, GD_KT, Trap_48,3);
+	SETGATE(idt[48], 0, GD_KT, Trap_48, 3);
 
 	cprintf("Se setearon los gates\n");
 
@@ -193,8 +192,13 @@ trap_dispatch(struct Trapframe *tf)
 		page_fault_handler(tf);
 	}
 	if(tf->tf_trapno == 48){
-		//TODO: Revisar parametros
-		syscall(tf->tf_regs.reg_eax,tf->tf_regs.reg_edx,tf->tf_regs.reg_ecx,tf->tf_regs.reg_ebx,tf->tf_regs.reg_edi,tf->tf_regs.reg_esi); 
+		uint32_t resultado = syscall(tf->tf_regs.reg_eax, tf->tf_regs.reg_edx, tf->tf_regs.reg_ecx, tf->tf_regs.reg_ebx, tf->tf_regs.reg_edi, tf->tf_regs.reg_esi);
+		
+		//guardar resultado en eax;
+		/*asm("movl %0, %%eax\n"
+			:
+			:"r"(resultado)
+			:"%eax");*/
 	}
 
 

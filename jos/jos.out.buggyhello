@@ -33,4 +33,4 @@ TRAP frame at 0xeffffe5c
 Destroyed the only environment - nothing more to do!
 Welcome to the JOS kernel monitor!
 Type 'help' for a list of commands.
-qemu: terminating on signal 15 from pid 1588
+qemu: terminating on signal 15 from pid 22154

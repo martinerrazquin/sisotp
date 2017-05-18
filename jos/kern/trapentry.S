@@ -64,7 +64,6 @@ TRAPHANDLER_NOEC(Trap_16, T_FPERR)
 TRAPHANDLER(Trap_17, T_ALIGN)
 TRAPHANDLER_NOEC(Trap_18, T_MCHK)
 TRAPHANDLER_NOEC(Trap_19, T_SIMDERR)
-//TRAPHANDLER_NOEC(Trap_20, 20)
 TRAPHANDLER_NOEC(Trap_48, T_SYSCALL)
 
 	
@@ -77,15 +76,15 @@ TRAPHANDLER_NOEC(Trap_48, T_SYSCALL)
 
 _alltraps:
 	pushl %ds
-        pushl %es
+    pushl %es
 	pushal
 
 	movw $GD_KD, %ax
 	movw %ax, %ds
 	movw %ax, %es 
 
-        pushl %esp  /* trap(%esp) */
-        call trap	
+    pushl %esp
+    call trap	
 	
 .data
 .globl traphndlr
@@ -110,6 +109,7 @@ _alltraps:
 	.long Trap_17
 	.long Trap_18
 	.long Trap_19
+	.long Trap_48
 	
 	
 	

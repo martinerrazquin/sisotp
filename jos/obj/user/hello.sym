@@ -5,11 +5,11 @@
 00800020 T _start
 0080002c t args_exist
 00800033 T umain
-0080005f T libmain
-00800094 T exit
-008000a8 t putch
-008000ea T vcprintf
-0080014b T cprintf
+0080005c T libmain
+00800091 T exit
+008000a5 t putch
+008000e7 T vcprintf
+00800148 T cprintf
 00800170 t printnum
 0080025f t getuint
 00800299 t getint
