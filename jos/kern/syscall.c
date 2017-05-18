@@ -21,7 +21,8 @@ sys_cputs(const char *s, size_t len)
 	// Destroy the environment if not.
 
 	// LAB 3: Your code here.
-	cprintf("Entre a f1()\n");
+
+	
 
 	// Print the string supplied by the user.
 	cprintf("%.*s", len, s);
