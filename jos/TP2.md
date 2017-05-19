@@ -130,9 +130,10 @@ Al cambiar de contexto, el %eip cambia para apuntar a las nuevas instrucciones q
 kern_idt
 ---------
 ¿Cómo decidir si usar TRAPHANDLER o TRAPHANDLER_NOEC? ¿Qué pasaría si se usara solamente la primera?
--Leyendo la bibliografia [IA-3A] y revisando si la interrupcion/excepción pushea al stack un código de error o no. Si se usara solamente TRAPHANDLER el programa no funcionaría debido a que la CPU no siempre pushea un código de error mientras que el kernel espera que el Trapframe tenga uno guardado.
+-Leyendo la bibliografia [IA-3A] y revisando si la interrupcion/excepción pushea al stack un código de error o no. Si se usara solamente TRAPHANDLER el programa no funcionaría debido a que la CPU no siempre pushea un código de error mientras que el kernel espera que el Trapframe tenga uno guardado. Al no haber un código de error el trapframe que recibe la función trap() no sería correcto.
 
 ¿Qué cambia, en la invocación de handlers, el segundo parámetro (istrap) de la macro SETGATE? ¿Por qué se elegiría un comportamiento u otro durante un syscall?
+-El parámetro indica si la entrada de la IDT corresponde a un interrupt gate o trap gate. El interrupt elimina el flag IF para evitar que haya interrupciones mientras el handler se ejecuta. Los interrupts son lanzados de forma asincronica, es decir que se pueden lanzar en cualquier momento.
 
 Leer user/softint.c y ejecutarlo con make run-softint-nox. ¿Qué excepción se genera? Si hay diferencias con la que invoca el programa… ¿por qué mecanismo ocurre eso, y por qué razones?
 -Se genera la excepcion "Page Fault".

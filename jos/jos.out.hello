@@ -9,11 +9,10 @@ check_page_installed_pgdir() succeeded!
 Se setean los gates 
 Se setearon los gates
 [00000000] new env 00001000
-Incoming TRAP frame at 0xefffffbc
-Entre a syscall()
-[00001000] user_mem_check assertion failure for va f010000c
-[00001000] free env 00001000
-Destroyed the only environment - nothing more to do!
+Incoming TRAP frame at 0xf010ef20
+>>>
+>>> kernel panic at kern/trap.c:267: Kernel-mode page fault!!tf_cs=0x8
+>>>
 Welcome to the JOS kernel monitor!
 Type 'help' for a list of commands.
-qemu: terminating on signal 15 from pid 1662
+qemu: terminating on signal 15 from pid 1329
