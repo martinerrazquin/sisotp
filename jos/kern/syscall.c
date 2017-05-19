@@ -22,7 +22,7 @@ sys_cputs(const char *s, size_t len)
 
 	// LAB 3: Your code here.
 	//MARTIN_TP2_PARTE
-	user_mem_assert(curenv,s,len,PTE_U);
+	user_mem_assert(curenv,s,len,0);
 	
 
 	// Print the string supplied by the user.

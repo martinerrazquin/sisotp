@@ -16,4 +16,4 @@ Entre a syscall()
 Destroyed the only environment - nothing more to do!
 Welcome to the JOS kernel monitor!
 Type 'help' for a list of commands.
-qemu: terminating on signal 15 from pid 1662
+qemu: terminating on signal 15 from pid 13686

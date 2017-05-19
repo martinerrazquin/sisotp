@@ -113,7 +113,7 @@ env_init(void)
 {
 	// Set up envs array
 	// LAB 3: Your code here. (OK)
-	env_free_list = &envs[0];
+	
 	for (size_t i=0; i< NENV-1; i++){
 		envs[i].env_status = ENV_FREE; 
 		envs[i].env_id = 0;
@@ -122,7 +122,7 @@ env_init(void)
 	}
 	envs[NENV-1].env_status = ENV_FREE;
 	envs[NENV-1].env_id = 0;
-	
+	env_free_list = &envs[0];
 	// Per-CPU part of the initialization
 	env_init_percpu();
 }
@@ -368,7 +368,8 @@ load_icode(struct Env *e, uint8_t *binary)
 		region_alloc(e,va,ph->p_memsz);
 		memcpy(va,(void*)binary+ph->p_offset,ph->p_filesz);
 		memset(va + ph->p_filesz,0,ph->p_memsz - ph->p_filesz);//VA+FILESZ->VA+MEMSZ
-		ph += elf->e_phentsize;
+		ph++;
+		//ph += elf->e_phentsize;
 	}
 
 
@@ -527,8 +528,8 @@ env_run(struct Env *e)
 		//si RUNNABLE no deberia estar corriendo
 		//si NOT_RUNNABLE ???
 	}
-	//assert(e->env_status != ENV_FREE);//DEBUG2
-	//assert(e->env_status == ENV_RUNNABLE);//DEBUG2
+	assert(e->env_status != ENV_FREE);//DEBUG2
+	assert(e->env_status == ENV_RUNNABLE);//DEBUG2
 	curenv=e;
 	curenv->env_status = ENV_RUNNING;
 	curenv->env_runs++;
