@@ -549,7 +549,7 @@ user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 {
 	// LAB 3: Your code here.
 	//MARTIN_TP2_PARTE5
-	uintptr_t xva = (uintptr_t) va;
+/*	uintptr_t xva = (uintptr_t) va;
 	uintptr_t lim_va = xva+len;
 	if (xva >= ULIM){
 		user_mem_check_addr = xva;
@@ -571,7 +571,7 @@ user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 			return -E_FAULT;
 		}
 		ROUNDUP(++xva,PGSIZE);
-	}
+	}*/
 	return 0;
 }
 
