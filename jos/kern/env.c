@@ -276,10 +276,10 @@ region_alloc(struct Env *e, void *va, size_t len)
 	//   'va' and 'len' values that are not page-aligned.
 	//   You should round va down, and round (va + len) up.
 	//   (Watch out for corner-cases!)
-	
-	va = ROUNDDOWN(va,PGSIZE);
+
 	void* va_finish = ROUNDUP(va+len,PGSIZE);
-	if (va_finish>va) {
+	va = ROUNDDOWN(va,PGSIZE);
+	if (va_finish>=va) {
 		len = va_finish - va; //es un multiplo de PGSIZE	
 	}
 	else {
@@ -362,13 +362,13 @@ load_icode(struct Env *e, uint8_t *binary)
 
 	struct Proghdr* ph = (struct Proghdr*)(binary + elf->e_phoff);
 	void* va;
-	for (int hdr_num = 0; hdr_num < elf->e_phnum; hdr_num++){
+	for (int hdr_num = 0; hdr_num < elf->e_phnum; hdr_num++,ph++){
 		va=(void*) ph->p_va;
 		if (ph->p_type != ELF_PROG_LOAD) continue;
 		region_alloc(e,va,ph->p_memsz);
 		memcpy(va,(void*)binary+ph->p_offset,ph->p_filesz);
 		memset(va + ph->p_filesz,0,ph->p_memsz - ph->p_filesz);//VA+FILESZ->VA+MEMSZ
-		ph++;
+		//ph++;
 		//ph += elf->e_phentsize;
 	}
 
@@ -380,7 +380,7 @@ load_icode(struct Env *e, uint8_t *binary)
 
 	// LAB 3: Your code here.
 
-	region_alloc(e,(void*)USTACKTOP - PGSIZE,PGSIZE);
+	region_alloc(e,(void*)(USTACKTOP - PGSIZE),PGSIZE);
 
 	lcr3(PADDR(kern_pgdir));//vuelvo a poner el pgdir del kernel 
 }
@@ -521,6 +521,7 @@ env_run(struct Env *e)
 	//panic("env_run not yet implemented");
 
 	if(curenv != NULL){	//si no es la primera vez que se corre esto hay que guardar todo
+		assert(curenv->env_status == ENV_RUNNING);
 		if (curenv->env_status == ENV_RUNNING) curenv->env_status=ENV_RUNNABLE;
 		//podria estar en otro estado? FREE, DYING, RUNNABLE, NOT_RUNNABLE ?
 		//si FREE no tiene nada, no tiene sentido

@@ -15,4 +15,4 @@ Incoming TRAP frame at 0xf010ef20
 >>>
 Welcome to the JOS kernel monitor!
 Type 'help' for a list of commands.
-qemu-system-i386: terminating on signal 15 from pid 7397
+qemu-system-i386: terminating on signal 15 from pid 11907
