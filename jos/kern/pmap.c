@@ -435,7 +435,6 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 	assert(va % PGSIZE == 0);
 	assert(pa % PGSIZE == 0);
 	assert(size % PGSIZE == 0);	
-
 	//uint32_t cant_iteraciones = size/PGSIZE;
 	//for (int i=0;i<cant_iteraciones;i++){//al ser iteraciones fijas no hay problema de overflow
 	//physaddr_t pa_inicial = pa;	
@@ -597,12 +596,12 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// Hint: The staff solution uses boot_map_region.
 	//
 	// Your code here:
-	size_t mult_size = ROUNDUP(size, PGSIZE);
+	
+	size_t mult_size = ROUNDUP(size, PGSIZE); 
 	if(base+mult_size > MMIOLIM){
 		panic("Overflowing MMIOLIM");
 	}
-	boot_map_region(kern_pgdir, base, mult_size, pa, PTE_P | PTE_PWT | PTE_PCD);
-
+	boot_map_region(kern_pgdir, base, mult_size, pa, PTE_P | PTE_PWT | PTE_PCD | PTE_W);
 	uintptr_t mapped_base = base;
 	base += mult_size;
 	return (void *) mapped_base;
