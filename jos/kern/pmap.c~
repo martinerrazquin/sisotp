@@ -316,7 +316,7 @@ page_init(void)
 	// Change the code to reflect this.
 	// NB: DO NOT actually touch the physical memory corresponding to
 	// free pages!
-	static_assert(MPENTRY_PADDR % PGSIZE ==0);
+	_Static_assert(MPENTRY_PADDR % PGSIZE == 0,"MPENTRY_PADDR is not page-aligned");
 	size_t i;
 	uint32_t lim_inf_IO = PGNUM(IOPHYSMEM);//==npages_basemem
 	//uint32_t lim_sup_IO = PGNUM(EXTPHYSMEM); //no hace falta por lim_sup_kernmem > lim_sup_IO
