@@ -310,7 +310,7 @@ region_alloc(struct Env *e, void *va, size_t len)
 		//len-=PGSIZE;
 	}
 	assert(va==va_finish);
-	cprintf("va es %p\n",va);
+	//cprintf("va es %p\n",va);
 
 /*
 	void* in = ROUNDDOWN(va,PGSIZE);

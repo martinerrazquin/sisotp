@@ -29,7 +29,18 @@ sched_yield(void)
 	// below to halt the cpu.
 
 	// LAB 4: Your code here.
-
+	idle = curenv; //MARTIN SCHED_YIELD: necesario?
+	for(struct Env* e= curenv+1; e != curenv; e++) {
+		if(e >= envs + NENV) e = envs;
+		if(e->env_status == ENV_RUNNABLE){
+			idle = e;
+			break;
+		}
+	}
+	//MARTIN SCHED_YIELD: esto es asi para que nunca vuelve, pero solo por el noreturn. En task.c no era asi! Llevara a bugs???
+	if(idle != curenv || curenv->env_status == ENV_RUNNING){
+		env_run(idle);
+	}
 	// sched_halt never returns
 	sched_halt();
 }

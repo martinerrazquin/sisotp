@@ -35,7 +35,7 @@ sys_cputs(const char *s, size_t len)
 static int
 sys_cgetc(void)
 {
-	cprintf("Entre a f2()\n");
+	//cprintf("Entre a f2()\n");
 	return cons_getc();
 }
 
@@ -43,7 +43,7 @@ sys_cgetc(void)
 static envid_t
 sys_getenvid(void)
 {
-	cprintf("Entre a f3()\n");
+	//cprintf("Entre a f3()\n");
 	return curenv->env_id;
 }
 
@@ -55,7 +55,7 @@ sys_getenvid(void)
 static int
 sys_env_destroy(envid_t envid)
 {
-	cprintf("Entre a f4()\n");
+	//cprintf("Entre a f4()\n");
 	int r;
 	struct Env *e;
 
@@ -277,7 +277,7 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 	// LAB 3: Your code here.
 
 	//panic("syscall not implemented");
-	cprintf("Entre a syscall()\n");
+	//cprintf("Entre a syscall()\n");
 	switch (syscallno) {
 	case SYS_cputs:
 		sys_cputs((char *)a1, a2);
