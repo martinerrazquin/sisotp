@@ -29,7 +29,7 @@ sched_yield(void)
 	// below to halt the cpu.
 
 	// LAB 4: Your code here.
-	idle = curenv; //MARTIN SCHED_YIELD: necesario?
+	idle = curenv;
 	for(struct Env* e= curenv+1; e != curenv; e++) {
 		if(e >= envs + NENV) e = envs;
 		if(e->env_status == ENV_RUNNABLE){
