@@ -29,23 +29,13 @@ sched_yield(void)
 	// below to halt the cpu.
 
 	// LAB 4: Your code here.
-	idle = curenv;
-	for(struct Env* e= curenv+1; e != curenv; e++) {
-		if(e >= envs + NENV) e = envs;
-		if(e->env_status == ENV_RUNNABLE){
-			idle = e;
-			break;
-		}
-	}
-	//MARTIN SCHED_YIELD: una vez que ande lo de arriba se puede cambiar todo por solo lo de abajo
-/*
-	for (idle = curenv+1 ; idle != curenv; idle++){
+	struct Env* limit = (curenv ? curenv : envs+NENV);
+ 
+	for (idle = limit+1 ; idle != limit; idle++){
 		if(idle >= envs + NENV) idle = envs;
 		if(idle->env_status == ENV_RUNNABLE) break;
 	}
-	
-*/
-	if(idle != curenv || curenv->env_status == ENV_RUNNING){
+	if(idle != limit || (curenv && curenv->env_status == ENV_RUNNING)){
 		env_run(idle);
 	}
 	// sched_halt never returns

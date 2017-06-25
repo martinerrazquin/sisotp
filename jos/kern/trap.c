@@ -89,7 +89,6 @@ void Trap_48();
 void
 trap_init(void)
 {
-	cprintf("Se setean los gates \n");
 	extern struct Segdesc gdt[];
 
 	// LAB 3: Your code here.
@@ -113,7 +112,6 @@ trap_init(void)
 	SETGATE(idt[19], 0, GD_KT, Trap_19, 0); 
 	SETGATE(idt[48], 0, GD_KT, Trap_48, 3);
 
-	cprintf("Se setearon los gates\n");
 
 	// Per-CPU setup
 	trap_init_percpu();

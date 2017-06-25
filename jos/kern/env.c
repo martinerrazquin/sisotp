@@ -564,6 +564,7 @@ env_run(struct Env *e)
 	
 	//panic("env_run not yet implemented");
 
+
 	if(curenv != NULL){	//si no es la primera vez que se corre esto hay que guardar todo
 		assert(curenv->env_status == ENV_RUNNING);
 		if (curenv->env_status == ENV_RUNNING) curenv->env_status=ENV_RUNNABLE;
@@ -573,8 +574,8 @@ env_run(struct Env *e)
 		//si RUNNABLE no deberia estar corriendo
 		//si NOT_RUNNABLE ???
 	}
-	assert(e->env_status != ENV_FREE);//DEBUG2
-	assert(e->env_status == ENV_RUNNABLE);//DEBUG2
+	//assert(e->env_status != ENV_FREE);//DEBUG2
+	assert(e->env_status == ENV_RUNNABLE /*|| e->env_status == ENV_RUNNING*/);//DEBUG2
 	curenv=e;
 	curenv->env_status = ENV_RUNNING;
 	curenv->env_runs++;
