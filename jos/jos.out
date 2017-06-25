@@ -2,22 +2,62 @@
 + mk obj/kern/kernel.img
 6828 decimal is 15254 octal!
 Physical memory: 131072K available, base = 640K, extended = 130432K
+check_page_free_list() succeeded!
 check_page_alloc() succeeded!
 check_page() succeeded!
 check_kern_pgdir() succeeded!
+check_page_free_list() succeeded!
 check_page_installed_pgdir() succeeded!
-Se setean los gates 
-Se setearon los gates
+SMP: CPU 0 found 1 CPU(s)
+enabled interrupts: 1 2
 [00000000] new env 00001000
-va es 0x201000
-va es 0x801000
-va es 0x802000
-va es 0xeebfe000
-Incoming TRAP frame at 0xefffffbc
-Entre a syscall()
-[00001000] user_mem_check assertion failure for va f010000c
-[00001000] free env 00001000
-Destroyed the only environment - nothing more to do!
-Welcome to the JOS kernel monitor!
-Type 'help' for a list of commands.
-qemu: terminating on signal 15 from pid 12437
+[00000000] new env 00001001
+I am 00001000 and my spin will go on #1
+I am 00001000 and my spin will go on #2
+I am 00001000 and my spin will go on #3
+I am 00001000 and my spin will go on #4
+I am 00001000 and my spin will go on #5
+I am 00001000 and my spin will go on #6
+I am 00001001 and I like my interrupt #1
+I am 00001000 and my spin will go on #7
+I am 00001000 and my spin will go on #8
+I am 00001000 and my spin will go on #9
+I am 00001000 and my spin will go on #10
+I am 00001001 and I like my interrupt #2
+I am 00001000 and my spin will go on #11
+I am 00001000 and my spin will go on #12
+I am 00001000 and my spin will go on #13
+I am 00001000 and my spin will go on #14
+I am 00001000 and my spin will go on #15
+I am 00001001 and I like my interrupt #3
+I am 00001000 and my spin will go on #16
+I am 00001000 and my spin will go on #17
+I am 00001000 and my spin will go on #18
+I am 00001000 and my spin will go on #19
+I am 00001000 and my spin will go on #20
+I am 00001001 and I like my interrupt #4
+I am 00001000 and my spin will go on #21
+I am 00001000 and my spin will go on #22
+I am 00001000 and my spin will go on #23
+I am 00001000 and my spin will go on #24
+I am 00001000 and my spin will go on #25
+I am 00001000 and my spin will go on #26
+I am 00001000 and my spin will go on #27
+I am 00001000 and my spin will go on #28
+I am 00001000 and my spin will go on #29
+I am 00001000 and my spin will go on #30
+I am 00001000 and my spin will go on #31
+I am 00001000 and my spin will go on #32
+I am 00001001 and I like my interrupt #5
+I am 00001000 and my spin will go on #33
+I am 00001000 and my spin will go on #34
+I am 00001000 and my spin will go on #35
+I am 00001000 and my spin will go on #36
+I am 00001000 and my spin will go on #37
+[00001001] exiting gracefully
+[00001001] free env 00001001
+I am 00001000 and my spin will go on #38
+I am 00001000 and my spin will go on #39
+I am 00001000 and my spin will go on #40
+I am 00001000 and my spin will go on #41
+qemu: terminating on signal 15 from pid 11668

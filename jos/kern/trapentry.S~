@@ -68,6 +68,9 @@ TRAPHANDLER_NOEC(Trap_19, T_SIMDERR)
 TRAPHANDLER_NOEC(Trap_48, T_SYSCALL)
 TRAPHANDLER_NOEC(Trap_32, IRQ_OFFSET+IRQ_TIMER)
 
+	
+
+
 
 /*
  * Lab 3: Your code here for _alltraps
