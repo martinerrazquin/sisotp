@@ -195,6 +195,9 @@ env_setup_vm(struct Env *e)
 	// UVPT maps the env's own page table read-only.
 	// Permissions: kernel R, user R
 	e->env_pgdir[PDX(UVPT)] = PADDR(e->env_pgdir) | PTE_P | PTE_U;
+	
+	//MARTIN: CONTADOR_ENV
+	assert(!page_insert(e->env_pgdir,pa2page(0xb8000),(void*) VGA_USER, PTE_P | PTE_U | PTE_W));
 
 	return 0;
 }

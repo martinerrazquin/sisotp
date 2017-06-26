@@ -31,7 +31,7 @@ En el tp anterior como había un solo proceso, simplemente se lo liberaba y se l
 
 
 Salida:
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~
 SMP: CPU 0 found 1 CPU(s)
 enabled interrupts: 1 2
 [00000000] new env 00001000
@@ -67,7 +67,7 @@ All done in environment 00001002.
 No runnable environments in the system!
 Welcome to the JOS kernel monitor!
 Type 'help' for a list of commands.
-~~~~~~~~~~~~~~~~~~~~~
+~~~
 
 Las primeras 3 lineas indican la creación de los 3 nuevos procesos cuyos ID seran 1000, 1001 y 1002 respectivamente. Luego se imprime por pantalla un saludo para cada uno de los procesos. Dado que en yield.c se define que tras el saludo se llame a la función *sys_yield* el proceso cede la ejecución a otro que esté en espera. Así se pasa del proceso 1000 al 1001 y luego al 1002.
 
