@@ -93,7 +93,7 @@
 #define EXTPHYSMEM	0x100000
 
 //MARTIN: CONTADOR_ENV
-#define VGA_USER	0xb8000
+#define VGA_USER	(UTEMP+PGSIZE)
 
 // Kernel stack.
 #define KSTACKTOP	KERNBASE

@@ -92,6 +92,9 @@
 #define IOPHYSMEM	0x0A0000
 #define EXTPHYSMEM	0x100000
 
+//MARTIN: CONTADOR_ENV
+#define VGA_USER	(UTEMP-PGSIZE)
+
 // Kernel stack.
 #define KSTACKTOP	KERNBASE
 #define KSTKSIZE	(8*PGSIZE)   		// size of a kernel stack
@@ -139,7 +142,7 @@
 #define USTABDATA	(PTSIZE / 2)
 
 // Physical address of startup code for non-boot CPUs (APs)
-#define MPENTRY_PADDR	0x7001
+#define MPENTRY_PADDR	0x7000
 
 #ifndef __ASSEMBLER__
 
