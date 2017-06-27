@@ -332,7 +332,7 @@ page_fault_handler(struct Trapframe *tf)
 	// LAB 3: Your code here.
 	//MARTIN_TP2_PARTE5
 	if (!(tf->tf_cs & 0x3)) { //si CPL==0 es ring0 aka kernel
-		panic("Kernel-mode page fault!!tf_cs=%p",tf->tf_cs);
+		panic("Kernel-mode page fault!!\n");
 	}
 	// We've already handled kernel-mode exceptions, so if we get here,
 	// the page fault happened in user mode.

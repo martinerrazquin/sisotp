@@ -96,10 +96,14 @@ sys_exofork(void)
 	int success = env_alloc(&e,father_id);
 
 	if (success == -E_NO_MEM || success ==-E_NO_FREE_ENV){
+		//DEBUG2
+			if(success == -E_NO_MEM) cprintf("SYS_EXOFORK DEVUELVE E_NO_MEM\n");
+			if(success == -E_NO_FREE_ENV) cprintf("SYS_EXOFORK DEVUELVE E_NO_FREE_ENV\n");
+		//FIN DEBUG2
 		return success;
 	}
 	e->env_status = ENV_NOT_RUNNABLE;
-	memcpy((void*) &curenv->env_tf,(void*)&e->env_tf, sizeof(struct Trapframe));
+	memcpy((void*) &e->env_tf,(void*)&curenv->env_tf, sizeof(struct Trapframe));
 	e->env_tf.tf_regs.reg_eax = 0;
 	return e->env_id;
 }
@@ -121,7 +125,7 @@ sys_env_set_status(envid_t envid, int status)
 	// envid's status.
 
 	// LAB 4: Your code here.
-	if (status != ENV_RUNNABLE || status != ENV_NOT_RUNNABLE){
+	if (status != ENV_RUNNABLE && status != ENV_NOT_RUNNABLE){
 		return -E_INVAL;
 	}
 
@@ -271,17 +275,17 @@ sys_page_map(envid_t srcenvid, void *srcva, envid_t dstenvid, void *dstva, int p
 	if(!valid_perm){
 		return -E_INVAL;
 	}
-//Chequeo que este mapeado
-	pte_t *pte;
-	struct PageInfo* src_page = page_lookup(source->env_pgdir, srcva, &pte);
-	if (src_page == NULL){
+//Chequeo que este mapeado en source y que si pide PTE_W lo tenga en source
+
+	pte_t *pte_ptr;
+	struct PageInfo* src_page = page_lookup(source->env_pgdir, srcva, &pte_ptr);
+	if(!pte_ptr){	//no esta mapeada
 		return -E_INVAL;
 	}
 
-	if ( ((perm & PTE_W) == PTE_W) && ((*pte & PTE_W) != 0)){
+	if((perm & PTE_W) && !(*pte_ptr & PTE_W)){//pide PTE_W pero en source no lo tiene
 		return -E_INVAL;
 	}
-
 //Mapeo la pagina en destination
 
 	int ret_code = page_insert(destination->env_pgdir, src_page, dstva, perm);
@@ -305,7 +309,7 @@ sys_page_unmap(envid_t envid, void *va)
 	// Hint: This function is a wrapper around page_remove().
 
 	// LAB 4: Your code here.
-	panic("sys_page_unmap not implemented");
+	//panic("sys_page_unmap not implemented");
 
 
 	struct Env *e;
