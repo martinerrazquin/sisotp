@@ -89,7 +89,25 @@ Tras realizar esto, cada proceso entra en un ciclo donde imprime por pantalla un
 
 # PARTE 2
 
-# COMPLETAR
+#SYS_envid2env
+
+Explicar que pasa:
+    a)en JOS, si un proceso llama a sys_env_destroy(0)
+    b)en Linux, si un proceso llama a kill(0, 9)
+    c)JOS: sys_env_destroy(-1)
+    d)Linux: kill(-1, 9)
+
+a) La función envid2env() devuelve al proceso actual cuando se le pasa el valor 0 como parámetro. Por ende, sys_env_destroy terminará el proceso que realizó la llamada a dicha función.
+
+b) La funcion kill envía una señal determinada a un proceso o grupo de. El segundo parámetro es el identificador de la señal que en este caso en particular indica SIGKILL. Esta señal termina instantaneamente a un proceso. Como el primer parámetro es igual a 0 la señal se enviará a todos los procesos que pertenezcan al mismo grupo de grupos. Por ende se terminaran todos los procesos que pertenezcan al grupo del proceso que llamo a kill().
+
+c) **arreglar** No estoy seguro que pasaria en este caso. inc/env.h dice que un envid_t menor a 0 significa error. Por otro lado, envid2env() no hace ningun chequeo. Si funcionara bien se destruiria el ultimo proceso de la lista (el ENVX de -1 es 1111111111, y eso equivaldria al offset del ultimo proceso en el array envs).
+
+d) El parametro -1 indica que la señal se enviará a todos los procesos sobre los cuales se tenga permiso. Esto incluye al proceso mismo (aunque por implementación la señal no se envia en este caso) y a los procesos hijos.
+
+
+
+
 # COMPLETAR
 # COMPLETAR
 # COMPLETAR

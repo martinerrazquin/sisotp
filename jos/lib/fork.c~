@@ -79,7 +79,6 @@ static void
 dup_or_share(envid_t dstenv, void *va, int perm){
 	int r;
 	if ((perm & PTE_W) == PTE_W ){  //Escritura: crear nueva
-		//Copio directo de dumbfork. Esto deberia crear y copiar una nueva pagina.
 		if ((r = sys_page_alloc(dstenv, va, perm)) < 0)
 			panic("sys_page_alloc: %e", r);
 		if ((r = sys_page_map(dstenv, va, 0, UTEMP, perm)) < 0)

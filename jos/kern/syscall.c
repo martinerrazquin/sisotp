@@ -90,18 +90,22 @@ sys_exofork(void)
 	// will appear to return 0.
 
 	// LAB 4: Your code here.
-
+	cprintf("Entro a exofork\n");
 	struct Env* e;
 	envid_t father_id = curenv->env_id;
 	int success = env_alloc(&e,father_id);
+	cprintf("Post-llamada env_alloc\n");
 
 	if (success == -E_NO_MEM || success ==-E_NO_FREE_ENV){
 		return success;
 	}
 	e->env_status = ENV_NOT_RUNNABLE;
-	memcpy((void*) &curenv->env_tf,(void*)&e->env_tf, sizeof(struct Trapframe));
+	cprintf("Pre llamada memcpy\n");
+	memmove((void*)&e->env_tf,(void*) &curenv->env_tf, sizeof(struct Trapframe));
+	cprintf("post memcpy\n");
 	e->env_tf.tf_regs.reg_eax = 0;
 	return e->env_id;
+	cprintf("Salgo de exofork\n");
 }
 
 // Set envid's env_status to status, which must be ENV_RUNNABLE
@@ -119,7 +123,7 @@ sys_env_set_status(envid_t envid, int status)
 	// You should set envid2env's third argument to 1, which will
 	// check whether the current environment has permission to set
 	// envid's status.
-
+	cprintf("Entro a set_status\n");
 	// LAB 4: Your code here.
 	if (status != ENV_RUNNABLE || status != ENV_NOT_RUNNABLE){
 		return -E_INVAL;
@@ -133,6 +137,7 @@ sys_env_set_status(envid_t envid, int status)
 	
 	e->env_status = status;
 	return 0;
+	cprintf("Salgo de set_status\n");
 }
 
 // Set the page fault upcall for 'envid' by modifying the corresponding struct
@@ -177,7 +182,7 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 	//   allocated!
 
 	// LAB 4: Your code here.
-
+	cprintf("Entro a page_alloc\n");
 	struct Env *e;
 	int ret_code = envid2env(envid, &e, 1);
 
@@ -212,6 +217,7 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 	}
 
 	return 0;
+	cprintf("Salgo de page_fault\n");
 }
 
 // Map the page of memory at 'srcva' in srcenvid's address space
@@ -305,8 +311,6 @@ sys_page_unmap(envid_t envid, void *va)
 	// Hint: This function is a wrapper around page_remove().
 
 	// LAB 4: Your code here.
-	panic("sys_page_unmap not implemented");
-
 
 	struct Env *e;
 	int ret_code = envid2env(envid, &e, 1);
