@@ -7,6 +7,8 @@
 // It is one of the bits explicitly allocated to user processes (PTE_AVAIL).
 #define PTE_COW 0x800
 
+
+
 //
 // Custom page fault handler - if faulting page is copy-on-write,
 // map in our own private writable copy.
@@ -103,13 +105,13 @@ dup_or_share(envid_t dstenv, void *va, int perm){
 	//IMPL MARTIN
 	int r;
 
-	if (!(perm & PTE_W)){//si es R-only solo hay que mapear
+	if (!(perm & PTE_W) || (perm & PTE_MAPPED)){//si es R-only o mapeada(no se debe crear una página nueva) solo hay que mapear
 		if ((r = sys_page_map(0,va,dstenv, va, perm)) < 0){
 			panic("sys_page_map: %e", r);
 		}
 		return;
 	}
-	//si llego a aca es RW y hay que hacer el copiado
+	//si llego a aca es RW PERO NO PTE_MAPPED y hay que hacer el copiado
 
 	//alloc de la pagina nueva del hijo
 	if ((r = sys_page_alloc(dstenv, va, perm)) < 0){
@@ -146,15 +148,15 @@ fork_v0(void)
 	//Copiar mapeos
 	uint32_t va;
 	for (va = 0; va<UTOP; va+=PGSIZE){
-		uint32_t pagen = PGNUM(va);
-		uint32_t pdx = ROUNDDOWN(pagen, NPDENTRIES) / NPDENTRIES;
-		if ((uvpd[pdx] & PTE_P) == PTE_P && ((uvpt[pagen] & PTE_P) == PTE_P)) {
-				int perm = (uint32_t) uvpt[pagen] & PTE_SYSCALL;
+		//uint32_t ptx = PGNUM(va);
+		//uint32_t pdx = ROUNDDOWN(pagen, NPDENTRIES) / NPDENTRIES;
+		uint32_t ptx = PTX(va);
+		uint32_t pdx = PDX(va);
+		if ((uvpd[pdx] & PTE_P) == PTE_P && ((uvpt[ptx] & PTE_P) == PTE_P)) {
+				int perm = (uint32_t) uvpt[ptx] & PTE_SYSCALL;
 				dup_or_share(pid, (void*)va, perm);
 		}
-	}
-
-	
+	}	
 	//Copio el stack
 	dup_or_share(pid,ROUNDDOWN(&va,PGSIZE),PTE_P|PTE_U|PTE_W);
 	//Setear hijo como Runnable
@@ -165,6 +167,13 @@ fork_v0(void)
 	
 }
 
+/*
+bool is_writable(void* va){
+	
+	return uvpt[PTX(va)] & (PTE_P | PTE_W);	
+	
+}
+*/
 
 envid_t
 fork(void){

@@ -11,26 +11,120 @@ check_page_installed_pgdir() succeeded!
 SMP: CPU 0 found 1 CPU(s)
 enabled interrupts: 1 2
 [00000000] new env 00001000
-1000: I am ''
-[00001000] user panic in <unknown> at lib/fork.c:136: fork not implemented
-Welcome to the JOS kernel monitor!
-Type 'help' for a list of commands.
-TRAP frame at 0xf0317000 from CPU 0
-  edi  0x00000000
-  esi  0x00800fb6
-  ebp  0xeebfdf40
-  oesp 0xefffffdc
-  ebx  0xeebfdf54
-  edx  0xeebfddf8
-  ecx  0x00000001
-  eax  0x00000001
-  es   0x----0023
-  ds   0x----0023
-  trap 0x00000003 Breakpoint
-  err  0x00000000
-  eip  0x00800d08
-  cs   0x----001b
-  flag 0x00000282
-  esp  0xeebfdf38
-  ss   0x----0023
-qemu-system-i386: terminating on signal 15 from pid 22409
+[00000000] new env 00001001
+I am 00001000 and my spin will go on #1
+I am 00001000 and my spin will go on #2
+I am 00001000 and my spin will go on #3
+I am 00001000 and my spin will go on #4
+I am 00001000 and my spin will go on #5
+I am 00001000 and my spin will go on #6
+I am 00001000 and my spin will go on #7
+I am 00001000 and my spin will go on #8
+I am 00001000 and my spin will go on #9
+I am 00001000 and my spin will go on #10
+I am 00001000 and my spin will go on #11
+I am 00001000 and my spin will go on #12
+I am 00001000 and my spin will go on #13
+I am 00001000 and my spin will go on #14
+I am 00001000 and my spin will go on #15
+I am 00001001 and I like my interrupt #1
+I am 00001000 and my spin will go on #16
+I am 00001000 and my spin will go on #17
+I am 00001000 and my spin will go on #18
+I am 00001000 and my spin will go on #19
+I am 00001000 and my spin will go on #20
+I am 00001000 and my spin will go on #21
+I am 00001000 and my spin will go on #22
+I am 00001000 and my spin will go on #23
+I am 00001000 and my spin will go on #24
+I am 00001000 and my spin will go on #25
+I am 00001000 and my spin will go on #26
+I am 00001000 and my spin will go on #27
+I am 00001000 and my spin will go on #28
+I am 00001000 and my spin will go on #29
+I am 00001001 and I like my interrupt #2
+I am 00001000 and my spin will go on #30
+I am 00001000 and my spin will go on #31
+I am 00001000 and my spin will go on #32
+I am 00001000 and my spin will go on #33
+I am 00001000 and my spin will go on #34
+I am 00001000 and my spin will go on #35
+I am 00001000 and my spin will go on #36
+I am 00001000 and my spin will go on #37
+I am 00001000 and my spin will go on #38
+I am 00001000 and my spin will go on #39
+I am 00001000 and my spin will go on #40
+I am 00001000 and my spin will go on #41
+I am 00001000 and my spin will go on #42
+I am 00001000 and my spin will go on #43
+I am 00001000 and my spin will go on #44
+I am 00001000 and my spin will go on #45
+I am 00001001 and I like my interrupt #3
+I am 00001000 and my spin will go on #46
+I am 00001000 and my spin will go on #47
+I am 00001000 and my spin will go on #48
+I am 00001000 and my spin will go on #49
+I am 00001000 and my spin will go on #50
+I am 00001000 and my spin will go on #51
+I am 00001000 and my spin will go on #52
+I am 00001000 and my spin will go on #53
+I am 00001000 and my spin will go on #54
+I am 00001000 and my spin will go on #55
+I am 00001000 and my spin will go on #56
+I am 00001000 and my spin will go on #57
+I am 00001000 and my spin will go on #58
+I am 00001000 and my spin will go on #59
+I am 00001000 and my spin will go on #60
+I am 00001000 and my spin will go on #61
+I am 00001001 and I like my interrupt #4
+I am 00001000 and my spin will go on #62
+I am 00001000 and my spin will go on #63
+I am 00001000 and my spin will go on #64
+I am 00001000 and my spin will go on #65
+I am 00001000 and my spin will go on #66
+I am 00001000 and my spin will go on #67
+I am 00001000 and my spin will go on #68
+I am 00001000 and my spin will go on #69
+I am 00001000 and my spin will go on #70
+I am 00001000 and my spin will go on #71
+I am 00001000 and my spin will go on #72
+I am 00001000 and my spin will go on #73
+I am 00001000 and my spin will go on #74
+I am 00001000 and my spin will go on #75
+I am 00001000 and my spin will go on #76
+I am 00001000 and my spin will go on #77
+I am 00001000 and my spin will go on #78
+I am 00001001 and I like my interrupt #5
+I am 00001000 and my spin will go on #79
+I am 00001000 and my spin will go on #80
+I am 00001000 and my spin will go on #81
+I am 00001000 and my spin will go on #82
+I am 00001000 and my spin will go on #83
+I am 00001000 and my spin will go on #84
+I am 00001000 and my spin will go on #85
+I am 00001000 and my spin will go on #86
+I am 00001000 and my spin will go on #87
+I am 00001000 and my spin will go on #88
+I am 00001000 and my spin will go on #89
+I am 00001000 and my spin will go on #90
+I am 00001000 and my spin will go on #91
+I am 00001000 and my spin will go on #92
+I am 00001000 and my spin will go on #93
+I am 00001000 and my spin will go on #94
+[00001001] exiting gracefully
+[00001001] free env 00001001
+I am 00001000 and my spin will go on #95
+I am 00001000 and my spin will go on #96
+I am 00001000 and my spin will go on #97
+I am 00001000 and my spin will go on #98
+I am 00001000 and my spin will go on #99
+I am 00001000 and my spin will go on #100
+I am 00001000 and my spin will go on #101
+I am 00001000 and my spin will go on #102
+I am 00001000 and my spin will go on #103
+I am 00001000 and my spin will go on #104
+I am 00001000 and my spin will go on #105
+I am 00001000 and my spin will go on #106
+I am 00001000 and my spin will go on #107
+I am 00001000 and my spin will go on #108
+qemu-system-i386: terminating on signal 15 from pid 11573

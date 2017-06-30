@@ -109,7 +109,6 @@ El parametro -1 indica que la señal se enviará a todos los procesos sobre los 
 
 *Si, antes de llamar a dumbfork(), el proceso se reserva a sí mismo una página con sys_page_alloc() ¿se propagará una copia al proceso hijo? ¿Por qué?*
 
-
 # COMPLETAR
 
 *¿Se preserva el estado de solo-lectura en las páginas copiadas? Mostrar, con código en espacio de usuario, cómo saber si una dirección de memoria es modificable por el proceso, o no.*
@@ -151,7 +150,7 @@ Considerando que ahora se puede realizar un mapeo en donde se puede seleccionar 
 
 -desmapearla en el padre.
 
-*Como código (asumiendo que nunca ocurrieran errores)*
+*Como código (sin contemplar errores)*
 ~~~
 void duppage2(envid_t dstenv, void *addr, bool r_only){
 	int perm = PTE_P|PTE_U|PTE_W;
@@ -171,19 +170,11 @@ Dado que addr es una variable local, esta alojada en stack. Luego, si hacemos RO
 
 *¿Funciona? ¿Qué está ocurriendo con el mapping de VGA_USER? ¿Dónde hay que arreglarlo?*
 
-# COMPLETAR
-
-
-*Implementar una solución genérica haciendo uso de un nuevo flag en mmu.h, PTE_MAPPED:*
-~~~
-#define PTE_MAPPED 0x...  // Never to be be copied, eg. MMIO.
-~~~
-
-# COMPLETAR
+No. Lo que está ocurriendo es que la página física del buffer VGA es la que corresponde a una dirección física particular, pero dup_or_share (o duppage, o cualquiera de las usadas hasta ahora) para copiar una página con permisos RW reservaban una página nueva, por lo que nunca se escriben los datos en el buffer sino en otra página aleatoria. Para solucionarlo, hay que agregar al caso de los permisos R-only el caso de páginas no-copiables (que también deben ser sólo mapeadas) en la función para mapeo de páginas correspondiente, en este caso dup_or_share.
 
 *¿Podría fork() darse cuenta, en lugar de usando un flag propio, mirando los flags PTE_PWT y/o PTE_PCD? (Suponiendo que env_setup_vm() los añadiera para VGA_USER).*
 
-# COMPLETAR
+No, porque no son flags admitidos para syscall (que son los que estan en 1 en PTE_SYSCALL). Luego, cuando se duplica la página, estos flags no se preservan. Para preservarlos deben ser, o bien los ya establecidos, o alguno de los 3 de PTE_AVAIL.
 
 
 # COMPLETAR

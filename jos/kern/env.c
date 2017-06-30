@@ -196,10 +196,10 @@ env_setup_vm(struct Env *e)
 	// Permissions: kernel R, user R
 	e->env_pgdir[PDX(UVPT)] = PADDR(e->env_pgdir) | PTE_P | PTE_U;
 	
+	#define VGA_PHYSADDR 0xb8000
 	//MARTIN: CONTADOR_ENV
-	struct PageInfo *page;
-	page = page_alloc(ALLOC_ZERO);
-	assert(!page_insert(e->env_pgdir,page,(void*) VGA_USER, PTE_P | PTE_U | PTE_W));
+	struct PageInfo *page = pa2page(VGA_PHYSADDR);
+	assert(!page_insert(e->env_pgdir,page,(void*) VGA_USER, PTE_P | PTE_U | PTE_W | PTE_MAPPED));
 	
 	//page_insert(e->env_pgdir,page,(void*) VGA_USER, PTE_P | PTE_U | PTE_W);
 	return 0;

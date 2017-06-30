@@ -1,7 +1,8 @@
 #include <inc/lib.h>
 
 static void contador(int linea, int color, int delay);
-/* 
+
+/*
 //IMPL ORIGINAL
 void
 umain(int argc, char **argv)
@@ -15,6 +16,7 @@ umain(int argc, char **argv)
 	contador(lineas[i], colores[i], delays[i]);
 
 }
+
 */
 
 //CONTADOR_FORK

@@ -69,6 +69,9 @@
 // hardware, so user processes are allowed to set them arbitrarily.
 #define PTE_AVAIL	0xE00	// Available for software use
 
+//MARTIN: CONTADOR_FORK
+#define PTE_MAPPED	0x200	//Only map
+
 // Flags in PTE_SYSCALL may be used in system calls.  (Others may not.)
 #define PTE_SYSCALL	(PTE_AVAIL | PTE_P | PTE_W | PTE_U)
 
