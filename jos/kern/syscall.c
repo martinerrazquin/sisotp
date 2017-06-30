@@ -138,8 +138,9 @@ sys_env_set_status(envid_t envid, int status)
 	}
 	
 	e->env_status = status;
-	return 0;
 	cprintf("Salgo de set_status\n");
+	return 0;
+
 }
 
 // Set the page fault upcall for 'envid' by modifying the corresponding struct
@@ -217,7 +218,7 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 		page_free(page);
 		return -E_NO_MEM;
 	}
-
+	cprintf("Salgo de page_alloc\n");
 	return 0;
 	cprintf("Salgo de page_fault\n");
 }

@@ -133,7 +133,7 @@ fork_v0(void)
 {
 	// LAB 4: Your code here.
 	int r;
-	panic("fork not implemented");
+	//panic("fork not implemented");
 	int pid = sys_exofork();
 	if (pid < 0)
 		panic("sys_exofork: %e", pid);

@@ -1,17 +1,33 @@
 #include <inc/lib.h>
 
 static void contador(int linea, int color, int delay);
-
+/* 
+//IMPL ORIGINAL
 void
 umain(int argc, char **argv)
 {
+
 	int lineas[] = { 0, 3, 7 };
 	int delays[] = { 1, 4, 7 };
 	int colores[] = { 0x2f, 0x6f, 0x4f };
 
 	int i = (sys_getenvid() - 1) % 3;
 	contador(lineas[i], colores[i], delays[i]);
+
 }
+*/
+
+//CONTADOR_FORK
+void umain(int argc, char **argv) {
+    if (fork())
+        contador(0, 0x2f, 1);  // Verde, rápido.
+    else if (fork())
+        contador(3, 0x6f, 4);  // Naranja, lento.
+    else
+        contador(7, 0x4f, 7);  // Rojo, muy lento.
+}
+
+
 
 static void
 contador(int linea, int color, int delay)
