@@ -83,29 +83,69 @@ Tras realizar esto, cada proceso entra en un ciclo donde imprime por pantalla un
 
 # COMPLETAR
 
+## SYS_envid2env
+
+*Explicar que pasa:*
+
+*a)en JOS, si un proceso llama a sys_env_destroy(0)*
+
+La función envid2env() devuelve al proceso actual cuando se le pasa el valor 0 como parámetro. Por ende, sys_env_destroy terminará el proceso que realizó la llamada a dicha función.
+
+*b)en Linux, si un proceso llama a kill(0, 9)*
+
+La funcion kill envía una señal determinada a un proceso o grupo de. El segundo parámetro es el identificador de la señal que en este caso en particular indica SIGKILL. Esta señal termina instantaneamente a un proceso. Como el primer parámetro es igual a 0 la señal se enviará a todos los procesos que pertenezcan al mismo grupo de grupos. Por ende se terminaran todos los procesos que pertenezcan al grupo del proceso que llamo a kill().
+
+*c)JOS: sys_env_destroy(-1)*
+
+**arreglar** No estoy seguro que pasaria en este caso. inc/env.h dice que un envid_t menor a 0 significa error. Por otro lado, envid2env() no hace ningun chequeo. Si funcionara bien se destruiria el ultimo proceso de la lista (el ENVX de -1 es 1111111111, y eso equivaldria al offset del ultimo proceso en el array envs).
+
+*d)Linux: kill(-1, 9)*
+
+El parametro -1 indica que la señal se enviará a todos los procesos sobre los cuales se tenga permiso. Esto incluye al proceso mismo (aunque por implementación la señal no se envia en este caso) y a los procesos hijos.
+
+## dumbfork
+
+*Tras leer con atención el código, se pide responder:*
+
+*Si, antes de llamar a dumbfork(), el proceso se reserva a sí mismo una página con sys_page_alloc() ¿se propagará una copia al proceso hijo? ¿Por qué?*
 
 
+# COMPLETAR
+
+*¿Se preserva el estado de solo-lectura en las páginas copiadas? Mostrar, con código en espacio de usuario, cómo saber si una dirección de memoria es modificable por el proceso, o no.*
+
+No, porque duppage las mapea con permisos de RW siempre.
+
+# AGREGAR CÓDIGO
+
+*Describir el funcionamiento de la función duppage().*
+
+# REVISAR LO DE PAGE_MAP QUE DICE EN EL PADRE (será en el kernel? no creo).
+
+Duppage consta de 4 partes:
+
+-page_alloc: reserva una página nueva en el esp. de direcciones del proceso dstenv, mapeada a la dirección addr. Lo hace con permisos de RW.
+
+-page_map: mapea esta nueva página a la dirección UTEMP en el padre, también con permisos RW.
+
+-memmove: copia los datos correspondientes a la página en addr (del padre) a la página en UTEMP (del padre), que es la mapeada como addr en el hijo.
+
+-page_unmap: desmapea la página del padre, luego la única referencia la tiene el hijo.
 
 
-# PARTE 2
+*Supongamos que se añade a duppage() un argumento booleano que indica si la página debe quedar como solo-lectura en el proceso hijo:*
 
-#SYS_envid2env
+*	*indicar qué llamada adicional se debería hacer si el booleano es true*
 
-Explicar que pasa:
-    a)en JOS, si un proceso llama a sys_env_destroy(0)
-    b)en Linux, si un proceso llama a kill(0, 9)
-    c)JOS: sys_env_destroy(-1)
-    d)Linux: kill(-1, 9)
+Debería hacer una segunda llamada a sys_page_map para setearle los permisos correctos (sin PTE_W en este caso).
 
-a) La función envid2env() devuelve al proceso actual cuando se le pasa el valor 0 como parámetro. Por ende, sys_env_destroy terminará el proceso que realizó la llamada a dicha función.
+*	*describir un algoritmo alternativo que no aumente el número de llamadas al sistema, que debe quedar en 3 (1 × alloc, 1 × map, 1 × unmap).*
 
-b) La funcion kill envía una señal determinada a un proceso o grupo de. El segundo parámetro es el identificador de la señal que en este caso en particular indica SIGKILL. Esta señal termina instantaneamente a un proceso. Como el primer parámetro es igual a 0 la señal se enviará a todos los procesos que pertenezcan al mismo grupo de grupos. Por ende se terminaran todos los procesos que pertenezcan al grupo del proceso que llamo a kill().
+# COMPLETAR
 
-c) **arreglar** No estoy seguro que pasaria en este caso. inc/env.h dice que un envid_t menor a 0 significa error. Por otro lado, envid2env() no hace ningun chequeo. Si funcionara bien se destruiria el ultimo proceso de la lista (el ENVX de -1 es 1111111111, y eso equivaldria al offset del ultimo proceso en el array envs).
+*¿Por qué se usa ROUNDDOWN(&addr) para copiar el stack? ¿Qué es addr y por qué, si el stack crece hacia abajo, se usa ROUNDDOWN y no ROUNDUP?*
 
-d) El parametro -1 indica que la señal se enviará a todos los procesos sobre los cuales se tenga permiso. Esto incluye al proceso mismo (aunque por implementación la señal no se envia en este caso) y a los procesos hijos.
-
-
+# COMPLETAR
 
 
 # COMPLETAR
