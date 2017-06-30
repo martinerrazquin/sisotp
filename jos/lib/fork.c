@@ -78,7 +78,7 @@ duppage(envid_t envid, unsigned pn)
 static void
 dup_or_share(envid_t dstenv, void *va, int perm){
 
-	//IMPL GUILLE (creo que le faltan un par de chequeos, no estoy seguro)
+	//IMPL GUILLE (creo que le faltan unos chequeos, no estoy seguro)
 /*
 	
 	int r;
@@ -104,7 +104,7 @@ dup_or_share(envid_t dstenv, void *va, int perm){
 	int r;
 
 	if (!(perm & PTE_W)){//si es R-only solo hay que mapear
-		if ((r = sys_page_map(thisenv->env_id,va,dstenv, va, perm)) < 0){//TODO: thisenv->env_id o sys_getenvid()? con env_id es directo y (luego) sin syscall que pide lock, pero no es sucio?
+		if ((r = sys_page_map(0,va,dstenv, va, perm)) < 0){
 			panic("sys_page_map: %e", r);
 		}
 		return;
@@ -144,8 +144,8 @@ fork_v0(void)
 	}
 	//Padre
 	//Copiar mapeos
-
-	for (uint32_t va = 0; va<UTOP; va+=PGSIZE){
+	uint32_t va;
+	for (va = 0; va<UTOP; va+=PGSIZE){
 		uint32_t pagen = PGNUM(va);
 		uint32_t pdx = ROUNDDOWN(pagen, NPDENTRIES) / NPDENTRIES;
 		if ((uvpd[pdx] & PTE_P) == PTE_P && ((uvpt[pagen] & PTE_P) == PTE_P)) {
@@ -154,8 +154,9 @@ fork_v0(void)
 		}
 	}
 
-	//TODO: falta copiar el stack
 	
+	//Copio el stack
+	dup_or_share(pid,ROUNDDOWN(&va,PGSIZE),PTE_P|PTE_U|PTE_W);
 	//Setear hijo como Runnable
 	if ((r = sys_env_set_status(pid, ENV_RUNNABLE)) < 0)
 		panic("sys_env_set_status: %e", r);

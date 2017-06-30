@@ -120,8 +120,6 @@ No, porque duppage las mapea con permisos de RW siempre.
 
 *Describir el funcionamiento de la función duppage().*
 
-# REVISAR LO DE PAGE_MAP QUE DICE EN EL PADRE (será en el kernel? no creo).
-
 Duppage consta de 4 partes:
 
 -page_alloc: reserva una página nueva en el esp. de direcciones del proceso dstenv, mapeada a la dirección addr. Lo hace con permisos de RW.
@@ -137,20 +135,57 @@ Duppage consta de 4 partes:
 
 *	*indicar qué llamada adicional se debería hacer si el booleano es true*
 
-Debería hacer una segunda llamada a sys_page_map para setearle los permisos correctos (sin PTE_W en este caso).
+Debería hacerse una segunda llamada a sys_page_map para setearle los permisos correctos (sin PTE_W en este caso).
 
 *	*describir un algoritmo alternativo que no aumente el número de llamadas al sistema, que debe quedar en 3 (1 × alloc, 1 × map, 1 × unmap).*
 
-# COMPLETAR
+Considerando que ahora se puede realizar un mapeo en donde se puede seleccionar como R-only pero teniendo en cuenta que no se puede mapear una página con más permisos que en el mapeo original, resulta:
+
+*Como algoritmo*
+
+-reservar una página en el padre con permisos de RW.
+
+-copiar el contenido de la página.
+
+-mapearla en el hijo con permisos de R.
+
+-desmapearla en el padre.
+
+*Como código (asumiendo que nunca ocurrieran errores)*
+~~~
+void duppage2(envid_t dstenv, void *addr, bool r_only){
+	int perm = PTE_P|PTE_U|PTE_W;
+	sys_page_alloc(0,UTEMP,perm);
+	memmove(UTEMP,addr,PGSIZE);
+	if (r_only) perm = perm & ~PTE_W;
+	sys_page_map(0,UTEMP,dstenv,addr,perm);
+	sys_page_unmap(0,UTEMP);
+}
+~~~
 
 *¿Por qué se usa ROUNDDOWN(&addr) para copiar el stack? ¿Qué es addr y por qué, si el stack crece hacia abajo, se usa ROUNDDOWN y no ROUNDUP?*
 
+Dado que addr es una variable local, esta alojada en stack. Luego, si hacemos ROUNDDOWN(&addr) obtenemos la dirección de base de la página en la cual tenemos el SP, que es la que nos importa copiar; de hacer ROUNDUP y no estar alineado el SP a PGSIZE, se obtendría la página siguiente, que no tiene sentido recordando que nuestra intención es copiar el stack.
+
+## contador_fork
+
+*¿Funciona? ¿Qué está ocurriendo con el mapping de VGA_USER? ¿Dónde hay que arreglarlo?*
+
 # COMPLETAR
 
 
+*Implementar una solución genérica haciendo uso de un nuevo flag en mmu.h, PTE_MAPPED:*
+~~~
+#define PTE_MAPPED 0x...  // Never to be be copied, eg. MMIO.
+~~~
+
 # COMPLETAR
+
+*¿Podría fork() darse cuenta, en lugar de usando un flag propio, mirando los flags PTE_PWT y/o PTE_PCD? (Suponiendo que env_setup_vm() los añadiera para VGA_USER).*
+
 # COMPLETAR
-# COMPLETAR
+
+
 # COMPLETAR
 # COMPLETAR
 # COMPLETAR
