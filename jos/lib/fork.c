@@ -77,6 +77,10 @@ duppage(envid_t envid, unsigned pn)
 
 static void
 dup_or_share(envid_t dstenv, void *va, int perm){
+
+	//IMPL GUILLE (creo que le faltan un par de chequeos, no estoy seguro)
+/*
+	
 	int r;
 	if ((perm & PTE_W) == PTE_W ){  //Escritura: crear nueva
 		//Copio directo de dumbfork. Esto deberia crear y copiar una nueva pagina.
@@ -94,6 +98,34 @@ dup_or_share(envid_t dstenv, void *va, int perm){
 			panic("sys_page_map: %e", r);
 	}
 	return;
+*/
+
+	//IMPL MARTIN
+	int r;
+
+	if (!(perm & PTE_W)){//si es R-only solo hay que mapear
+		if ((r = sys_page_map(thisenv->env_id,va,dstenv, va, perm)) < 0){//TODO: thisenv->env_id o sys_getenvid()? con env_id es directo y (luego) sin syscall que pide lock, pero no es sucio?
+			panic("sys_page_map: %e", r);
+		}
+		return;
+	}
+	//si llego a aca es RW y hay que hacer el copiado
+
+	//alloc de la pagina nueva del hijo
+	if ((r = sys_page_alloc(dstenv, va, perm)) < 0){
+		panic("sys_page_alloc: %e", r);
+	}
+	//mapeo la nueva del hijo a UTEMP en el padre
+	if ((r = sys_page_map(dstenv, va, 0, UTEMP, perm)) < 0){
+		panic("sys_page_map: %e", r);
+	}
+	//copio a la page del hijo mapeada en UTEMP del padre
+	memmove(UTEMP, va, PGSIZE);
+
+	//desmapeo del padre la page del hijo
+	if ((r = sys_page_unmap(0, UTEMP)) < 0){
+		panic("sys_page_unmap: %e", r);
+	}
 }
 
 envid_t
@@ -117,11 +149,13 @@ fork_v0(void)
 		uint32_t pagen = PGNUM(va);
 		uint32_t pdx = ROUNDDOWN(pagen, NPDENTRIES) / NPDENTRIES;
 		if ((uvpd[pdx] & PTE_P) == PTE_P && ((uvpt[pagen] & PTE_P) == PTE_P)) {
-				int perm = (uint32_t) uvpt[pagen]&PTE_SYSCALL;
+				int perm = (uint32_t) uvpt[pagen] & PTE_SYSCALL;
 				dup_or_share(pid, (void*)va, perm);
 		}
 	}
 
+	//TODO: falta copiar el stack
+	
 	//Setear hijo como Runnable
 	if ((r = sys_env_set_status(pid, ENV_RUNNABLE)) < 0)
 		panic("sys_env_set_status: %e", r);
