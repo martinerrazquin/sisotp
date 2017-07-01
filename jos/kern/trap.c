@@ -147,7 +147,7 @@ trap_init_percpu(void)
 
 	// Setup a TSS so that we get the right stack
 	// when we trap to the kernel.
-	thiscpu->cpu_ts.ts_esp0 =  KSTACKTOP - (thiscpu->cpu_id * (KSTKSIZE - KSTKGAP));
+		thiscpu->cpu_ts.ts_esp0 = (uintptr_t) percpu_kstacks[thiscpu->cpu_id] + KSTKSIZE;
 	thiscpu->cpu_ts.ts_ss0 = GD_KD;
 
 	// Initialize the TSS slot of the gdt.
@@ -160,7 +160,7 @@ trap_init_percpu(void)
 	ltr(GD_TSS0 + thiscpu->cpu_id * sizeof(struct Segdesc));
 
 	// Load the IDT
-	lidt(&idt_pd);
+lidt(&idt_pd);
 }
 
 void
@@ -277,13 +277,14 @@ trap(struct Trapframe *tf)
 	// Check that interrupts are disabled.  If this assertion
 	// fails, DO NOT be tempted to fix it by inserting a "cli" in
 	// the interrupt path.
-	assert(!(read_eflags() & FL_IF));
+		assert(!(read_eflags() & FL_IF));
 
 	if ((tf->tf_cs & 3) == 3) {
 		// Trapped from user mode.
 		// Acquire the big kernel lock before doing any
 		// serious kernel work.
 		// LAB 4: Your code here.
+		//PARTE 4: LOCK
 		lock_kernel();
 		assert(curenv);
 
