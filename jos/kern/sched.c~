@@ -29,8 +29,15 @@ sched_yield(void)
 	// below to halt the cpu.
 
 	// LAB 4: Your code here.
+<<<<<<< HEAD
 	
 	/*struct Env* limit = (curenv ? curenv : envs+NENV);
+=======
+
+/*
+	//IMPL ORIGINAL
+	struct Env* limit = (curenv ? curenv : envs+NENV);
+>>>>>>> 299ddce9da7e0f16b475bb598ed13896ec319457
  
 	for (idle = limit+1 ; idle != limit; idle++){
 		if(idle >= envs + NENV) idle = envs;
@@ -39,6 +46,23 @@ sched_yield(void)
 	if(idle != limit || (curenv && curenv->env_status == ENV_RUNNING)){
 		env_run(idle);
 	}
+*/
+	//IMPL CON INDICES
+	int actual = (curenv ? curenv - envs : -1);
+	int idx;
+	for (int i = 1; i <= NENV; i++){
+		idx = (actual+i) % NENV;
+		if (envs[idx].env_status==ENV_RUNNABLE){
+			env_run(&envs[idx]);	
+		}
+	}
+	//si llego a aca NO hay RUNNABLES en todo el loop
+	//si curenv && curenv es RUNNING, correrlo, sino halt
+	if (curenv && curenv->env_status == ENV_RUNNING){
+		env_run(curenv);
+	}	
+	
+
 	// sched_halt never returns
 	sched_halt();*/
 
@@ -61,7 +85,7 @@ sched_yield(void)
 		}
 	}
 	if(envs[idx].env_status==ENV_RUNNABLE || envs[idx].env_status==ENV_RUNNING){ //Chequeo de seguridad
-		env_run(envs[idx]);
+		env_run(&envs[idx]);
 	}
 	sched_halt();
 }

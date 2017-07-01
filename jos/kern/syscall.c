@@ -35,7 +35,6 @@ sys_cputs(const char *s, size_t len)
 static int
 sys_cgetc(void)
 {
-	//cprintf("Entre a f2()\n");
 	return cons_getc();
 }
 
@@ -43,7 +42,6 @@ sys_cgetc(void)
 static envid_t
 sys_getenvid(void)
 {
-	//cprintf("Entre a f3()\n");
 	return curenv->env_id;
 }
 
@@ -55,7 +53,6 @@ sys_getenvid(void)
 static int
 sys_env_destroy(envid_t envid)
 {
-	//cprintf("Entre a f4()\n");
 	int r;
 	struct Env *e;
 
@@ -90,24 +87,19 @@ sys_exofork(void)
 	// will appear to return 0.
 
 	// LAB 4: Your code here.
-	cprintf("Entro a exofork\n");
+
 	struct Env* e;
 	envid_t father_id = curenv->env_id;
 	int success = env_alloc(&e,father_id);
-	cprintf("Post-llamada env_alloc\n");
 
 	if (success == -E_NO_MEM || success ==-E_NO_FREE_ENV){
-		//DEBUG2
-			if(success == -E_NO_MEM) cprintf("SYS_EXOFORK DEVUELVE E_NO_MEM\n");
-			if(success == -E_NO_FREE_ENV) cprintf("SYS_EXOFORK DEVUELVE E_NO_FREE_ENV\n");
-		//FIN DEBUG2
 		return success;
 	}
 	e->env_status = ENV_NOT_RUNNABLE;
 	memcpy((void*) &e->env_tf,(void*)&curenv->env_tf, sizeof(struct Trapframe));
 	e->env_tf.tf_regs.reg_eax = 0;
 	return e->env_id;
-	cprintf("Salgo de exofork\n");
+
 }
 
 // Set envid's env_status to status, which must be ENV_RUNNABLE
@@ -125,7 +117,7 @@ sys_env_set_status(envid_t envid, int status)
 	// You should set envid2env's third argument to 1, which will
 	// check whether the current environment has permission to set
 	// envid's status.
-	cprintf("Entro a set_status\n");
+
 	// LAB 4: Your code here.
 	if (status != ENV_RUNNABLE && status != ENV_NOT_RUNNABLE){
 		return -E_INVAL;
@@ -138,7 +130,7 @@ sys_env_set_status(envid_t envid, int status)
 	}
 	
 	e->env_status = status;
-	cprintf("Salgo de set_status\n");
+
 	return 0;
 
 }
@@ -185,7 +177,7 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 	//   allocated!
 
 	// LAB 4: Your code here.
-	cprintf("Entro a page_alloc\n");
+
 	struct Env *e;
 	int ret_code = envid2env(envid, &e, 1);
 
@@ -218,9 +210,9 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 		page_free(page);
 		return -E_NO_MEM;
 	}
-	cprintf("Salgo de page_alloc\n");
+
 	return 0;
-	cprintf("Salgo de page_fault\n");
+
 }
 
 // Map the page of memory at 'srcva' in srcenvid's address space
