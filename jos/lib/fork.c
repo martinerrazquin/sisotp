@@ -7,6 +7,8 @@
 // It is one of the bits explicitly allocated to user processes (PTE_AVAIL).
 #define PTE_COW 0x800
 
+
+
 //
 // Custom page fault handler - if faulting page is copy-on-write,
 // map in our own private writable copy.
@@ -165,6 +167,13 @@ fork_v0(void)
 	
 }
 
+/*
+bool is_writable(void* va){
+	
+	return uvpt[PTX(va)] & (PTE_P | PTE_W);	
+	
+}
+*/
 
 envid_t
 fork(void){

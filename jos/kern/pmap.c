@@ -319,10 +319,13 @@ page_init(void)
 	static_assert(MPENTRY_PADDR % PGSIZE ==0);
 	size_t i;
 	uint32_t lim_inf_IO = PGNUM(IOPHYSMEM);//==npages_basemem
-	//uint32_t lim_sup_IO = PGNUM(EXTPHYSMEM); //no hace falta por lim_sup_kernmem > lim_sup_IO
+	uint32_t lim_sup_IO = PGNUM(EXTPHYSMEM);
 	uint32_t lim_sup_kernmem = PGNUM(PADDR(boot_alloc(0)));
 	for (i = 1; i < npages; i++) {//la 0 no se agrega tampoco
-		if ((i>=lim_inf_IO && i<lim_sup_kernmem) || i == PGNUM(MPENTRY_PADDR)) continue;//asi es como se no-mapea		
+		if ((i>=lim_inf_IO && i<lim_sup_kernmem) || i == PGNUM(MPENTRY_PADDR)){ 
+			pages[i].pp_ref = 1;//le agrego referencia extra para asegurar que no vengan nunca a la lista de free pages		
+			continue;//asi es como se no-mapea		
+		}
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = page_free_list;
 		page_free_list = &pages[i];
