@@ -104,7 +104,7 @@ dup_or_share(envid_t dstenv, void *va, int perm){
 
 	//IMPL MARTIN
 	int r;
-
+	assert(perm & PTE_P);
 	if (!(perm & PTE_W) || (perm & PTE_MAPPED)){//si es R-only o mapeada(no se debe crear una página nueva) solo hay que mapear
 		if ((r = sys_page_map(0,va,dstenv, va, perm)) < 0){
 			panic("sys_page_map: %e", r);
@@ -148,10 +148,21 @@ fork_v0(void)
 	//Copiar mapeos
 	uint32_t va;
 	for (va = 0; va<UTOP; va+=PGSIZE){
-		//uint32_t ptx = PGNUM(va);
-		//uint32_t pdx = ROUNDDOWN(pagen, NPDENTRIES) / NPDENTRIES;
-		uint32_t ptx = PTX(va);
-		uint32_t pdx = PDX(va);
+		uint32_t ptx = PGNUM(va);
+		uint32_t pdx = ROUNDDOWN(ptx, NPDENTRIES) / NPDENTRIES;
+		uint32_t ptx2 = PTX(va);
+		uint32_t pdx2 = PDX(va);
+/*
+		if(ptx != ptx2){
+			cprintf("PGNUM(va) = %d, PTX(va) = %d, en va = %p\n",ptx,ptx2,va);
+		}
+
+		if(pdx != pdx2){
+			cprintf("ROUNDDOWN(ptx, NPDENTRIES) / NPDENTRIES = %d, PDX(va) = %d\n",pdx,pdx2);
+		}
+		//assert(ptx == ptx2);
+		assert(pdx == pdx2);
+*/
 		if ((uvpd[pdx] & PTE_P) == PTE_P && ((uvpt[ptx] & PTE_P) == PTE_P)) {
 				int perm = (uint32_t) uvpt[ptx] & PTE_SYSCALL;
 				dup_or_share(pid, (void*)va, perm);
