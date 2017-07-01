@@ -77,6 +77,10 @@ duppage(envid_t envid, unsigned pn)
 
 static void
 dup_or_share(envid_t dstenv, void *va, int perm){
+
+	//IMPL GUILLE (creo que le faltan unos chequeos, no estoy seguro)
+/*
+	
 	int r;
 	if ((perm & PTE_W) == PTE_W ){  //Escritura: crear nueva
 		//Copio directo de dumbfork. Esto deberia crear y copiar una nueva pagina.
@@ -94,6 +98,34 @@ dup_or_share(envid_t dstenv, void *va, int perm){
 			panic("sys_page_map: %e", r);
 	}
 	return;
+*/
+
+	//IMPL MARTIN
+	int r;
+
+	if (!(perm & PTE_W) || (perm & PTE_MAPPED)){//si es R-only o mapeada(no se debe crear una página nueva) solo hay que mapear
+		if ((r = sys_page_map(0,va,dstenv, va, perm)) < 0){
+			panic("sys_page_map: %e", r);
+		}
+		return;
+	}
+	//si llego a aca es RW PERO NO PTE_MAPPED y hay que hacer el copiado
+
+	//alloc de la pagina nueva del hijo
+	if ((r = sys_page_alloc(dstenv, va, perm)) < 0){
+		panic("sys_page_alloc: %e", r);
+	}
+	//mapeo la nueva del hijo a UTEMP en el padre
+	if ((r = sys_page_map(dstenv, va, 0, UTEMP, perm)) < 0){
+		panic("sys_page_map: %e", r);
+	}
+	//copio a la page del hijo mapeada en UTEMP del padre
+	memmove(UTEMP, va, PGSIZE);
+
+	//desmapeo del padre la page del hijo
+	if ((r = sys_page_unmap(0, UTEMP)) < 0){
+		panic("sys_page_unmap: %e", r);
+	}
 }
 
 envid_t
@@ -101,7 +133,7 @@ fork_v0(void)
 {
 	// LAB 4: Your code here.
 	int r;
-	panic("fork not implemented");
+	//panic("fork not implemented");
 	int pid = sys_exofork();
 	if (pid < 0)
 		panic("sys_exofork: %e", pid);
@@ -112,16 +144,19 @@ fork_v0(void)
 	}
 	//Padre
 	//Copiar mapeos
-
-	for (uint32_t va = 0; va<UTOP; va+=PGSIZE){
-		uint32_t pagen = PGNUM(va);
-		uint32_t pdx = ROUNDDOWN(pagen, NPDENTRIES) / NPDENTRIES;
-		if ((uvpd[pdx] & PTE_P) == PTE_P && ((uvpt[pagen] & PTE_P) == PTE_P)) {
-				int perm = (uint32_t) uvpt[pagen]&PTE_SYSCALL;
+	uint32_t va;
+	for (va = 0; va<UTOP; va+=PGSIZE){
+		//uint32_t ptx = PGNUM(va);
+		//uint32_t pdx = ROUNDDOWN(pagen, NPDENTRIES) / NPDENTRIES;
+		uint32_t ptx = PTX(va);
+		uint32_t pdx = PDX(va);
+		if ((uvpd[pdx] & PTE_P) == PTE_P && ((uvpt[ptx] & PTE_P) == PTE_P)) {
+				int perm = (uint32_t) uvpt[ptx] & PTE_SYSCALL;
 				dup_or_share(pid, (void*)va, perm);
 		}
-	}
-
+	}	
+	//Copio el stack
+	dup_or_share(pid,ROUNDDOWN(&va,PGSIZE),PTE_P|PTE_U|PTE_W);
 	//Setear hijo como Runnable
 	if ((r = sys_env_set_status(pid, ENV_RUNNABLE)) < 0)
 		panic("sys_env_set_status: %e", r);
