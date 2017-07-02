@@ -102,10 +102,10 @@ def test_yield2():
     r.user_test("yield", make_args=["CPUS=2"])
     r.match(E(".00000000. new env $E1"),
             E(".00000000. new env $E2"),
-            "Hello, I am environment 0000100., cpu 0",
-            "Hello, I am environment 0000100., cpu 1",
-            "Back in environment 0000100., iteration 4, cpu 0",
-            "Back in environment 0000100., iteration 4, cpu 1",
+            "Hello, I am environment 00001000, cpu 0",
+            "Hello, I am environment 00001001, cpu 1",
+            "Back in environment 00001000, iteration 4, cpu 0",
+            "Back in environment 00001001, iteration 4, cpu 1",
             E(".$E1. exiting gracefully"),
             E(".$E2. exiting gracefully"))
 

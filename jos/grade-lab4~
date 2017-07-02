@@ -40,7 +40,7 @@ def test_yield():
 
 @test(1)
 def test_spin0():
-    r.user_test("spin0", timeout=10.0)
+    r.user_test("spin0", timeout=15.0)
     r.match(E(".00000000. new env $E1"),
             E(".00000000. new env $E2"),
             E("I am $E1 and my spin will go on #1"),
@@ -104,8 +104,8 @@ def test_yield2():
             E(".00000000. new env $E2"),
             "Hello, I am environment 0000100., cpu 0",
             "Hello, I am environment 0000100., cpu 1",
-            "Back in environment 0000100., iteration 4, cpu 0",
-            "Back in environment 0000100., iteration 4, cpu 1",
+            "Back in environment 00001000, iteration 4, cpu 0",
+            "Back in environment 00001001, iteration 4, cpu 1",
             E(".$E1. exiting gracefully"),
             E(".$E2. exiting gracefully"))
 
