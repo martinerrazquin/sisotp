@@ -314,25 +314,8 @@ region_alloc(struct Env *e, void *va, size_t len)
 			panic("Page Insert Fail: region_alloc");
 		
 		va+=PGSIZE;
-		//len-=PGSIZE;
 	}
 	assert(va==va_finish);
-	//cprintf("va es %p\n",va);
-
-/*
-	void* in = ROUNDDOWN(va,PGSIZE);
-	void* fin = ROUNDUP(va + len,PGSIZE);
-	struct PageInfo * p;
-	if(len==0)
-		return;
-	while(in < fin){
-		if(!(p = page_alloc(0)))
-			panic("Page Alloc Fail:region_alloc");
-		if(page_insert(e->env_pgdir,p,in,PTE_U | PTE_W ))
-			panic("Page Insert Fail: region_alloc");
-		in+=PGSIZE;
-	}*/
-
 }
 
 //
@@ -572,18 +555,8 @@ env_run(struct Env *e)
 	//panic("env_run not yet implemented");
 
 
-	if(curenv != NULL){	//si no es la primera vez que se corre esto hay que guardar todo
-		if(curenv->env_status != ENV_RUNNING) cprintf("env_status es %d\n",curenv->env_status);//DEBUG
-		assert(curenv->env_status == ENV_RUNNING);
-		if (curenv->env_status == ENV_RUNNING) curenv->env_status=ENV_RUNNABLE;
-		//podria estar en otro estado? FREE, DYING, RUNNABLE, NOT_RUNNABLE ?
-		//si FREE no tiene nada, no tiene sentido
-		//si DYING ????
-		//si RUNNABLE no deberia estar corriendo
-		//si NOT_RUNNABLE ???
-	}
-	//assert(e->env_status != ENV_FREE);//DEBUG2
-	assert(e->env_status == ENV_RUNNABLE /*|| e->env_status == ENV_RUNNING*/);//DEBUG2
+	if(curenv && curenv->env_status == ENV_RUNNING) curenv->env_status=ENV_RUNNABLE;
+	assert(e->env_status == ENV_RUNNABLE);
 	curenv=e;
 	curenv->env_status = ENV_RUNNING;
 	curenv->env_runs++;

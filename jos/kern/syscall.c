@@ -371,9 +371,8 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	//MARTIN: IPC
 	struct Env* target;
 	int errcode;
-	if ((errcode = envid2env(envid,&target,0))) {//si es valido lo pone en target, sino devuelve -E_BAD_ENV
-		assert(errcode == -E_BAD_ENV);//DEBUG		
-		return errcode;
+	if (envid2env(envid,&target,0) == -E_BAD_ENV) {//si es valido lo pone en target, sino devuelve -E_BAD_ENV	
+		return -E_BAD_ENV;
 	}
 	//target es Env valido
 	if (!target->env_ipc_recving){//si el target no esta recibiendo
@@ -384,14 +383,21 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 
 	void* dstva = target->env_ipc_dstva;
 	if ((uint32_t) srcva < UTOP && (uint32_t) dstva < UTOP){//si quiero compartir una pag y ademas el target esta pidiendo una
-		if ((uint32_t) srcva % PGSIZE) return -E_INVAL;//si la pag src no esta page-aligne
 		
-		assert(!((uint32_t) dstva % PGSIZE));//DEBUG
-		assert((uint32_t) dstva < UTOP);//DEBUG
+		pte_t* pteaddr;
+		struct PageInfo* srcpg = page_lookup(curenv->env_pgdir, srcva, &pteaddr);
 
-		if ((errcode = sys_page_map(curenv->env_id,srcva,envid,dstva,perm))){//page_map se ocupa de todos los -E_INVAL y -E_NO_MEM, y si anduvo bien ya esta mapeada
-			assert((errcode == -E_INVAL) || (errcode == -E_NO_MEM));//DEBUG
-			return errcode;
+		if (((uint32_t) srcva % PGSIZE) 	//srcva not page-aligned
+			|| !pteaddr						//not mapped at caller
+			|| ((perm & PTE_W) && !(*pteaddr & PTE_W))	//asking for W permission but caller doesnt have it
+			|| !(perm & (PTE_U | PTE_P))	//inappropiate perms (1/2): doesnt ask for PTE_P and PTE_U
+			||	(perm &  ~PTE_SYSCALL)		//inappropiate perms (2/2): asks for something other than allowed by PTE_SYSCALL
+			) return -E_INVAL;
+		
+		assert(!((uint32_t) dstva % PGSIZE));
+
+		if(page_insert(target->env_pgdir, srcpg, dstva, perm) == -E_NO_MEM){
+			return -E_NO_MEM;
 		}
 		target->env_ipc_perm = perm;
 	}
@@ -399,6 +405,7 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	target->env_ipc_recving = false;
 	target->env_ipc_from = curenv->env_id;
 	target->env_ipc_value = value;
+	target->env_tf.tf_regs.reg_eax = 0; //para que crea que devolvio con 0
 	target->env_status = ENV_RUNNABLE;
 	return 0;
 }
@@ -473,9 +480,10 @@ static int
 sys_ipc_recv(void *dstva)
 {
 	// LAB 4: Your code here.
-	if (((uint32_t)dstva >= UTOP) || ((uint32_t)dstva % PGSIZE)){
+	if (((uint32_t)dstva < UTOP) && ((uint32_t)dstva % PGSIZE)){//si quiere mandar una pero no esta alineada
 		return -E_INVAL;
 	}
+	//o dstva > UTOP y no se manda, o < UTOP pero esta alineada
 	curenv->env_ipc_dstva = dstva;
 	curenv->env_ipc_recving = true;
 	curenv->env_status = ENV_NOT_RUNNABLE;
