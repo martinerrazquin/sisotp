@@ -22,4 +22,7 @@ umain(int argc, char **argv)
             thisenv->env_id, i,thisenv->env_cpunum);
     }
 	cprintf("All done in environment %08x.\n", thisenv->env_id);
+
+
+	
 }

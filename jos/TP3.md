@@ -97,7 +97,8 @@ La funcion kill envía una señal determinada a un proceso o grupo de. El segund
 
 *c)JOS: sys_env_destroy(-1)*
 
-**arreglar** No estoy seguro que pasaria en este caso. inc/env.h dice que un envid_t menor a 0 significa error. Por otro lado, envid2env() no hace ningun chequeo. Si funcionara bien se destruiria el ultimo proceso de la lista (el ENVX de -1 es 1111111111, y eso equivaldria al offset del ultimo proceso en el array envs).
+Al realizar el syscall sys_env_destroy(-1) se obtiene un error (-E_BAD_ENV) al intentar ejecutar la función envid2env() pasando el valor -1 como parámetro. En la misma función se realiza un chequeo para comprobar que el environment agarrado tenga el mismo envid que el pasado por parámetro. Esto siempre fallará ya que por definición el envid será un entero positivo (el bit más significativo será siempre 0, mientras que en el caso de -1 dicho bit será un 1).
+
 
 *d)Linux: kill(-1, 9)*
 

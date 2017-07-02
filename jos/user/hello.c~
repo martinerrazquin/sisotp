@@ -1,0 +1,13 @@
+// hello, world
+#include <inc/lib.h>
+
+void
+umain(int argc, char **argv)
+{
+	//cprintf("hello, world\n");
+	//cprintf("i am environment %08x\n", sys_getenvid());
+	cprintf("Prueba de destruccion env -1\n");
+	sys_env_destroy(-1);
+	cprintf("Prueba terminada\n");
+
+}
