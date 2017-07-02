@@ -148,7 +148,6 @@ trap_init_percpu(void)
 	// Setup a TSS so that we get the right stack
 	// when we trap to the kernel.
 	int cpu_id = cpunum();
-	//cprintf("cpu_id %d \n",cpu_id);
 	// Setup a TSS so that we get the right stack
 	// when we trap to the kernel.
 	thiscpu->cpu_ts.ts_esp0 = KSTACKTOP - (cpu_id) * (KSTKSIZE + KSTKGAP);

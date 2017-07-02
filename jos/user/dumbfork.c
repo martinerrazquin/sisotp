@@ -70,11 +70,9 @@ dumbfork(void)
 		duppage(envid, addr);
 	// Also copy the stack we are currently running on.
 	duppage(envid, ROUNDDOWN(&addr, PGSIZE));
-	cprintf("FLAG4 DUMBFORK\n");//DEBUG2
 	// Start the child environment running
 	if ((r = sys_env_set_status(envid, ENV_RUNNABLE)) < 0)
 		panic("sys_env_set_status: %e", r);
-	cprintf("FLAG5 DUMBFORK-solo parent\n");//DEBUG2
 	return envid;
 }
 

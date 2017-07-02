@@ -12,7 +12,7 @@ SMP: CPU 0 found 1 CPU(s)
 enabled interrupts: 1 2
 [00000000] new env 00001000
 [00001000] user fault va 00000000 ip 00800056
-TRAP frame at 0xf031b000 from CPU 0
+TRAP frame at 0xf031c000 from CPU 0
   edi  0x00000000
   esi  0x00000000
   ebp  0xeebfdfd0
@@ -35,4 +35,4 @@ TRAP frame at 0xf031b000 from CPU 0
 No runnable environments in the system!
 Welcome to the JOS kernel monitor!
 Type 'help' for a list of commands.
-qemu: terminating on signal 15 from pid 14135
+qemu: terminating on signal 15 from pid 19186
