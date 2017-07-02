@@ -365,7 +365,46 @@ static int
 sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 {
 	// LAB 4: Your code here.
-	panic("sys_ipc_try_send not implemented");
+	//panic("sys_ipc_try_send not implemented");
+
+
+	//MARTIN: IPC
+	struct Env* target;
+	int errcode;
+	if ((errcode = envid2env(envid,&target,0))) {//si es valido lo pone en target, sino devuelve -E_BAD_ENV
+		assert(errcode == -E_BAD_ENV);//DEBUG		
+		return errcode;
+	}
+	//target es Env valido
+	if (!target->env_ipc_recving){//si el target no esta recibiendo
+		return -E_IPC_NOT_RECV;
+	}
+	//target esta recibiendo
+	target->env_ipc_perm = 0;//si no se manda pagina queda en 0
+
+	void* dstva = target->env_ipc_dstva;
+	if ((uint32_t) srcva < UTOP && (uint32_t) dstva < UTOP){//si quiero compartir una pag y ademas el target esta pidiendo una
+		if ((uint32_t) srcva % PGSIZE) return -E_INVAL;//si la pag src no esta page-aligne
+		
+		assert(!((uint32_t) dstva % PGSIZE));//DEBUG
+		assert((uint32_t) dstva < UTOP);//DEBUG
+
+		if ((errcode = sys_page_map(curenv->env_id,srcva,envid,dstva,perm))){//page_map se ocupa de todos los -E_INVAL y -E_NO_MEM, y si anduvo bien ya esta mapeada
+			assert((errcode == -E_INVAL) || (errcode == -E_NO_MEM));//DEBUG
+			return errcode;
+		}
+		target->env_ipc_perm = perm;
+	}
+	//o no habia pagina para compartir o ya lo hizo y salio bien
+	target->env_ipc_recving = false;
+	target->env_ipc_from = curenv->env_id;
+	target->env_ipc_value = value;
+	target->env_status = ENV_RUNNABLE;
+	return 0;
+}
+
+/*
+
 	bool target_page_send = false;
 	struct Env* env;
 	int r = envid2env(envid, &env, 0);
@@ -390,9 +429,9 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 		if (page_entry == NULL){
 			return -E_INVAL;
 		}
-		/*if (page_entry & PTE_P != PTE_P){    CREO QUE NO HACE FALTA
-			return -E_INVAL;
-		}*/
+		//if (page_entry & PTE_P != PTE_P){    CREO QUE NO HACE FALTA
+		//	return -E_INVAL;
+		//}
 		if (((*page_entry & PTE_W)!=PTE_W) && ((perm & PTE_W) == PTE_W)){
 			return -E_INVAL;
 		}
@@ -416,6 +455,8 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	env->env_status = ENV_RUNNABLE;
 	return 0;
 }
+*/
+
 
 // Block until a value is ready.  Record that you want to receive
 // using the env_ipc_recving and env_ipc_dstva fields of struct Env,
@@ -432,7 +473,7 @@ static int
 sys_ipc_recv(void *dstva)
 {
 	// LAB 4: Your code here.
-	if (((uint32_t)dstva < UTOP) || ((uint32_t)dstva%PGSIZE!=0)){
+	if (((uint32_t)dstva >= UTOP) || ((uint32_t)dstva % PGSIZE)){
 		return -E_INVAL;
 	}
 	curenv->env_ipc_dstva = dstva;
@@ -472,6 +513,12 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		return sys_page_map(a1, (void*) a2, a3, (void*) a4, a5);
 	case SYS_page_unmap:
 		return sys_page_unmap(a1, (void*) a2);
+	//MARTIN: IPC
+	case SYS_ipc_try_send:
+		return sys_ipc_try_send(a1, a2, (void*) a3,a4);
+	case SYS_ipc_recv:
+		return sys_ipc_recv((void*) a1);
+	//fin IPC
 	default:
 		return -E_INVAL;
 	}

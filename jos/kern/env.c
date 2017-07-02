@@ -573,6 +573,7 @@ env_run(struct Env *e)
 
 
 	if(curenv != NULL){	//si no es la primera vez que se corre esto hay que guardar todo
+		if(curenv->env_status != ENV_RUNNING) cprintf("env_status es %d\n",curenv->env_status);//DEBUG
 		assert(curenv->env_status == ENV_RUNNING);
 		if (curenv->env_status == ENV_RUNNING) curenv->env_status=ENV_RUNNABLE;
 		//podria estar en otro estado? FREE, DYING, RUNNABLE, NOT_RUNNABLE ?
