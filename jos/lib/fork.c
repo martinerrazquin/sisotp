@@ -150,19 +150,7 @@ fork_v0(void)
 	for (va = 0; va<UTOP; va+=PGSIZE){
 		uint32_t ptx = PGNUM(va);
 		uint32_t pdx = ROUNDDOWN(ptx, NPDENTRIES) / NPDENTRIES;
-		uint32_t ptx2 = PTX(va);
-		uint32_t pdx2 = PDX(va);
-/*
-		if(ptx != ptx2){
-			cprintf("PGNUM(va) = %d, PTX(va) = %d, en va = %p\n",ptx,ptx2,va);
-		}
 
-		if(pdx != pdx2){
-			cprintf("ROUNDDOWN(ptx, NPDENTRIES) / NPDENTRIES = %d, PDX(va) = %d\n",pdx,pdx2);
-		}
-		//assert(ptx == ptx2);
-		assert(pdx == pdx2);
-*/
 		if ((uvpd[pdx] & PTE_P) == PTE_P && ((uvpt[ptx] & PTE_P) == PTE_P)) {
 				int perm = (uint32_t) uvpt[ptx] & PTE_SYSCALL;
 				dup_or_share(pid, (void*)va, perm);
@@ -177,14 +165,6 @@ fork_v0(void)
 	return pid;
 	
 }
-
-/*
-bool is_writable(void* va){
-	
-	return uvpt[PTX(va)] & (PTE_P | PTE_W);	
-	
-}
-*/
 
 envid_t
 fork(void){

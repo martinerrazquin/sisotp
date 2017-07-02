@@ -77,11 +77,11 @@ Tras realizar esto, cada proceso entra en un ciclo donde imprime por pantalla un
 
 *¿qué ocurrirá con [la página donde esté alojado el buffer VGA] en env_free() al destruir el proceso?*
 
-# COMPLETAR
+Se liberará y será enviada (no devuelta, porque en un principio no había sido mapeada) a la lista de páginas libres.
 
 *¿qué código asegura que el buffer VGA físico no será nunca añadido a la lista de páginas libres?*
 
-# COMPLETAR
+Si al mapear toda la memoria, a las páginas que no deben ser mapeadas se les agrega una referencia extra, estas nunca serán devueltas a la lista.
 
 ## SYS_envid2env
 
@@ -109,13 +109,19 @@ El parametro -1 indica que la señal se enviará a todos los procesos sobre los 
 
 *Si, antes de llamar a dumbfork(), el proceso se reserva a sí mismo una página con sys_page_alloc() ¿se propagará una copia al proceso hijo? ¿Por qué?*
 
-# COMPLETAR
+Sí, porque sys_page_alloc la mapeará a una VA en el esp. de direcciones del padre, y dumbfork recorre todo este último duplicando al hijo.
 
 *¿Se preserva el estado de solo-lectura en las páginas copiadas? Mostrar, con código en espacio de usuario, cómo saber si una dirección de memoria es modificable por el proceso, o no.*
 
 No, porque duppage las mapea con permisos de RW siempre.
 
-# AGREGAR CÓDIGO
+~~~
+bool is_writable(void* va){
+	
+	return uvpt[PGNUM((uint32_t)va)] & (PTE_P | PTE_U |PTE_W);	
+	
+}
+~~~
 
 *Describir el funcionamiento de la función duppage().*
 
@@ -175,12 +181,4 @@ No. Lo que está ocurriendo es que la página física del buffer VGA es la que c
 *¿Podría fork() darse cuenta, en lugar de usando un flag propio, mirando los flags PTE_PWT y/o PTE_PCD? (Suponiendo que env_setup_vm() los añadiera para VGA_USER).*
 
 No, porque no son flags admitidos para syscall (que son los que estan en 1 en PTE_SYSCALL). Luego, cuando se duplica la página, estos flags no se preservan. Para preservarlos deben ser, o bien los ya establecidos, o alguno de los 3 de PTE_AVAIL.
-
-
-# COMPLETAR
-# COMPLETAR
-# COMPLETAR
-# COMPLETAR
-# COMPLETAR
-# COMPLETAR
 
